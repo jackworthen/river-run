@@ -307,6 +307,64 @@ class DatabaseManager:
         conn.close()
         return trip_id
     
+    def get_trip_log_by_id(self, trip_id: int) -> Optional[Dict]:
+        """Get a specific trip log by ID"""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT t.*, r.name as river_name 
+            FROM trip_logs t 
+            JOIN rivers r ON t.river_id = r.id 
+            WHERE t.id = ?
+        ''', (trip_id,))
+        row = cursor.fetchone()
+        
+        conn.close()
+        return dict(row) if row else None
+    
+    def update_trip_log(self, trip_id: int, trip_data: Dict):
+        """Update an existing trip log"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE trip_logs SET
+                river_id=?, trip_date=?, companions=?, water_level=?, weather_conditions=?,
+                flow_rate=?, duration_hours=?, difficulty_experienced=?, highlights=?,
+                challenges=?, gear_used=?, trip_rating=?, notes=?
+            WHERE id=?
+        ''', (
+            trip_data.get('river_id'),
+            trip_data.get('trip_date'),
+            trip_data.get('companions', ''),
+            trip_data.get('water_level', ''),
+            trip_data.get('weather_conditions', ''),
+            trip_data.get('flow_rate'),
+            trip_data.get('duration_hours'),
+            trip_data.get('difficulty_experienced', ''),
+            trip_data.get('highlights', ''),
+            trip_data.get('challenges', ''),
+            trip_data.get('gear_used', ''),
+            trip_data.get('trip_rating'),
+            trip_data.get('notes', ''),
+            trip_id
+        ))
+        
+        conn.commit()
+        conn.close()
+    
+    def delete_trip_log(self, trip_id: int):
+        """Delete a trip log"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM trip_logs WHERE id = ?', (trip_id,))
+        
+        conn.commit()
+        conn.close()
+
     def get_trip_logs(self, river_id: int = None) -> List[Dict]:
         """Get trip logs, optionally filtered by river"""
         conn = sqlite3.connect(self.db_path)
@@ -592,16 +650,19 @@ class RiverFormDialog(QDialog):
 
 
 class TripLogDialog(QDialog):
-    """Dialog for adding trip logs"""
+    """Dialog for adding/editing trip logs"""
     
-    def __init__(self, parent=None, rivers=None, selected_river_id=None):
+    def __init__(self, parent=None, rivers=None, selected_river_id=None, trip_data=None):
         super().__init__(parent)
         self.rivers = rivers or []
         self.selected_river_id = selected_river_id
+        self.trip_data = trip_data
         self.setup_ui()
+        if trip_data:
+            self.populate_form(trip_data)
     
     def setup_ui(self):
-        self.setWindowTitle("Add Trip Log")
+        self.setWindowTitle("Add Trip Log" if not self.trip_data else "Edit Trip Log")
         self.setModal(True)
         self.resize(500, 600)
         
@@ -672,10 +733,57 @@ class TripLogDialog(QDialog):
         layout.addLayout(form_layout)
         
         # Dialog buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel)
+        
+        # Add custom Save button
+        save_button = button_box.addButton("Save", QDialogButtonBox.ButtonRole.AcceptRole)
+        save_button.setDefault(True)  # Make Save the default button
+        
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
+    
+    def populate_form(self, trip_data):
+        """Populate form with existing trip data"""
+        # Set the river selection
+        for i in range(self.river_combo.count()):
+            if self.river_combo.itemData(i) == trip_data.get('river_id'):
+                self.river_combo.setCurrentIndex(i)
+                break
+        
+        # Set the date
+        if trip_data.get('trip_date'):
+            date_parts = trip_data['trip_date'].split('-')
+            if len(date_parts) == 3:
+                year, month, day = map(int, date_parts)
+                self.date_edit.setDate(QDate(year, month, day))
+        
+        # Set text fields
+        self.companions_edit.setText(trip_data.get('companions', ''))
+        self.water_level_edit.setText(trip_data.get('water_level', ''))
+        self.weather_edit.setText(trip_data.get('weather_conditions', ''))
+        
+        # Set numeric fields
+        if trip_data.get('flow_rate'):
+            self.flow_rate_edit.setValue(trip_data['flow_rate'])
+        if trip_data.get('duration_hours'):
+            self.duration_edit.setValue(trip_data['duration_hours'])
+        
+        self.difficulty_edit.setText(trip_data.get('difficulty_experienced', ''))
+        
+        # Set rating
+        if trip_data.get('trip_rating'):
+            rating_text = f"{trip_data['trip_rating']} - "
+            for i in range(self.rating_combo.count()):
+                if self.rating_combo.itemText(i).startswith(rating_text):
+                    self.rating_combo.setCurrentIndex(i)
+                    break
+        
+        # Set text areas
+        self.highlights_edit.setPlainText(trip_data.get('highlights', ''))
+        self.challenges_edit.setPlainText(trip_data.get('challenges', ''))
+        self.gear_edit.setPlainText(trip_data.get('gear_used', ''))
+        self.notes_edit.setPlainText(trip_data.get('notes', ''))
     
     def get_trip_data(self) -> Dict:
         """Get the trip data from the form"""
@@ -1192,12 +1300,22 @@ class MainWindow(QMainWindow):
         self.add_trip_btn.clicked.connect(self.add_trip_log)
         btn_layout.addWidget(self.add_trip_btn)
         
+        self.edit_trip_btn = QPushButton("Edit Trip Log")
+        self.edit_trip_btn.clicked.connect(self.edit_trip_log)
+        btn_layout.addWidget(self.edit_trip_btn)
+        
+        self.delete_trip_btn = QPushButton("Delete Trip Log")
+        self.delete_trip_btn.clicked.connect(self.delete_trip_log)
+        self.delete_trip_btn.setStyleSheet("QPushButton { background-color: #f44336; } QPushButton:hover { background-color: #da190b; }")
+        btn_layout.addWidget(self.delete_trip_btn)
+        
         btn_layout.addStretch()
         layout.addLayout(btn_layout)
         
         # Trip logs table
         self.trips_table = QTableWidget()
         self.trips_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.trips_table.itemSelectionChanged.connect(self.trip_selection_changed)
         layout.addWidget(self.trips_table)
     
     def create_stats_tab(self):
@@ -1403,6 +1521,74 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to delete river: {str(e)}")
     
+    def trip_selection_changed(self):
+        """Handle trip selection change"""
+        current_row = self.trips_table.currentRow()
+        if current_row >= 0:
+            # Enable edit and delete buttons when a trip is selected
+            self.edit_trip_btn.setEnabled(True)
+            self.delete_trip_btn.setEnabled(True)
+        else:
+            # Disable edit and delete buttons when no trip is selected
+            self.edit_trip_btn.setEnabled(False)
+            self.delete_trip_btn.setEnabled(False)
+    
+    def edit_trip_log(self):
+        """Edit the selected trip log"""
+        current_row = self.trips_table.currentRow()
+        if current_row < 0:
+            QMessageBox.warning(self, "No Selection", "Please select a trip to edit.")
+            return
+        
+        trip_id_item = self.trips_table.item(current_row, 0)
+        trip_id = int(trip_id_item.text())
+        trip_data = self.db_manager.get_trip_log_by_id(trip_id)
+        
+        if not trip_data:
+            QMessageBox.warning(self, "Error", "Could not load trip data.")
+            return
+        
+        rivers = self.db_manager.get_all_rivers()
+        dialog = TripLogDialog(self, rivers, trip_data.get('river_id'), trip_data)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            updated_data = dialog.get_trip_data()
+            
+            try:
+                self.db_manager.update_trip_log(trip_id, updated_data)
+                self.refresh_trips_table()
+                self.update_statistics()
+                self.status_bar.showMessage("Trip log updated successfully!")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to update trip log: {str(e)}")
+    
+    def delete_trip_log(self):
+        """Delete the selected trip log"""
+        current_row = self.trips_table.currentRow()
+        if current_row < 0:
+            QMessageBox.warning(self, "No Selection", "Please select a trip to delete.")
+            return
+        
+        trip_id = int(self.trips_table.item(current_row, 0).text())
+        river_name = self.trips_table.item(current_row, 1).text()
+        trip_date = self.trips_table.item(current_row, 2).text()
+        
+        reply = QMessageBox.question(
+            self,
+            "Confirm Delete",
+            f"Are you sure you want to delete the trip to '{river_name}' on {trip_date}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                self.db_manager.delete_trip_log(trip_id)
+                self.refresh_trips_table()
+                self.update_statistics()
+                self.status_bar.showMessage("Trip log deleted successfully!")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to delete trip log: {str(e)}")
+
     def add_trip_log(self):
         """Add a new trip log"""
         rivers = self.db_manager.get_all_rivers()
@@ -1457,6 +1643,12 @@ class MainWindow(QMainWindow):
         # Hide ID column and resize
         self.trips_table.hideColumn(0)
         self.trips_table.resizeColumnsToContents()
+        
+        # Disable edit and delete buttons by default (no selection)
+        if hasattr(self, 'edit_trip_btn'):
+            self.edit_trip_btn.setEnabled(False)
+        if hasattr(self, 'delete_trip_btn'):
+            self.delete_trip_btn.setEnabled(False)
     
     def update_statistics(self):
         """Update the statistics display"""
