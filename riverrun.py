@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
     QStatusBar, QToolBar, QHeaderView, QTreeWidget, QTreeWidgetItem,
     QInputDialog
 )
-from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal, QThread, QSize
+from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal, QThread, QSize, QSettings
 from PyQt6.QtGui import QPixmap, QIcon, QAction, QFont, QPalette, QColor
 
 class DatabaseManager:
@@ -981,7 +981,10 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.db_manager = DatabaseManager()
+        self.settings = QSettings("RiverRunner", "RiverRunner")
+        self.dark_mode = self.settings.value("dark_mode", False, type=bool)
         self.setup_ui()
+        self.apply_theme()
         self.refresh_rivers_table()
         self.refresh_trips_table()
     
@@ -989,7 +992,37 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("River Runner")
         self.setGeometry(100, 100, 1230, 800)  # Fine-tuned width to just eliminate horizontal scrollbar
         
-        # Set application style
+        # Create central widget and main layout
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        # Create tab widget
+        self.tab_widget = QTabWidget()
+        layout = QVBoxLayout(central_widget)
+        layout.addWidget(self.tab_widget)
+        
+        # Create tabs
+        self.create_rivers_tab()
+        self.create_trip_logs_tab()
+        self.create_stats_tab()
+        
+        # Create menu bar
+        self.create_menu_bar()
+        
+        # Create status bar
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+        self.status_bar.showMessage("Ready")
+    
+    def apply_theme(self):
+        """Apply the current theme"""
+        if self.dark_mode:
+            self.apply_dark_theme()
+        else:
+            self.apply_nature_theme()
+    
+    def apply_dark_theme(self):
+        """Apply the dark theme"""
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #2b2b2b;
@@ -1156,28 +1189,178 @@ class MainWindow(QMainWindow):
                 border-top: 1px solid #555555;
             }
         """)
-        
-        # Create central widget and main layout
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        
-        # Create tab widget
-        self.tab_widget = QTabWidget()
-        layout = QVBoxLayout(central_widget)
-        layout.addWidget(self.tab_widget)
-        
-        # Create tabs
-        self.create_rivers_tab()
-        self.create_trip_logs_tab()
-        self.create_stats_tab()
-        
-        # Create menu bar
-        self.create_menu_bar()
-        
-        # Create status bar
-        self.status_bar = QStatusBar()
-        self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Ready")
+    
+    def apply_nature_theme(self):
+        """Apply the nature-inspired theme"""
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #e8f4f8;
+                color: #2c5530;
+            }
+            QWidget {
+                background-color: #e8f4f8;
+                color: #2c5530;
+            }
+            QTabWidget::pane {
+                border: 1px solid #7fb069;
+                background-color: #e8f4f8;
+            }
+            QTabBar::tab {
+                background-color: #a8d5ba;
+                color: #2c5530;
+                border: 1px solid #7fb069;
+                padding: 8px 16px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                font-weight: bold;
+            }
+            QTabBar::tab:selected {
+                background-color: #4682b4;
+                color: #ffffff;
+                border-bottom: 1px solid #4682b4;
+            }
+            QTabBar::tab:hover {
+                background-color: #7fb069;
+                color: #ffffff;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #7fb069;
+                border-radius: 5px;
+                margin-top: 1ex;
+                padding-top: 10px;
+                background-color: #f8fffe;
+                color: #2c5530;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+                color: #2c5530;
+            }
+            QPushButton {
+                background-color: #4682b4;
+                border: none;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #5a9bd4;
+            }
+            QPushButton:pressed {
+                background-color: #2e6da4;
+            }
+            QLineEdit, QTextEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit {
+                background-color: #ffffff;
+                border: 1px solid #a8d5ba;
+                border-radius: 3px;
+                padding: 5px;
+                color: #2c5530;
+            }
+            QLineEdit:focus, QTextEdit:focus, QComboBox:focus {
+                border: 2px solid #4682b4;
+            }
+            QTableWidget {
+                background-color: #ffffff;
+                alternate-background-color: #f0f8ff;
+                gridline-color: #a8d5ba;
+                color: #2c5530;
+                selection-background-color: #4682b4;
+            }
+            QTableWidget::item {
+                padding: 5px;
+                border-bottom: 1px solid #a8d5ba;
+            }
+            QTableWidget::item:selected {
+                background-color: #4682b4;
+                color: #ffffff;
+            }
+            QHeaderView::section {
+                background-color: #a8d5ba;
+                color: #2c5530;
+                padding: 5px;
+                border: 1px solid #7fb069;
+                font-weight: bold;
+            }
+            QListWidget {
+                background-color: #ffffff;
+                border: 1px solid #a8d5ba;
+                color: #2c5530;
+            }
+            QListWidget::item {
+                padding: 5px;
+                border-bottom: 1px solid #a8d5ba;
+            }
+            QListWidget::item:selected {
+                background-color: #4682b4;
+                color: #ffffff;
+            }
+            QListWidget::item:hover {
+                background-color: #f0f8ff;
+            }
+            QLabel {
+                color: #2c5530;
+            }
+            QScrollBar:vertical {
+                background-color: #d4e9f1;
+                width: 12px;
+                border-radius: 6px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #7fb069;
+                border-radius: 6px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #88c999;
+            }
+            QScrollBar:horizontal {
+                background-color: #d4e9f1;
+                height: 12px;
+                border-radius: 6px;
+            }
+            QScrollBar::handle:horizontal {
+                background-color: #7fb069;
+                border-radius: 6px;
+                min-width: 20px;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background-color: #88c999;
+            }
+            QMenuBar {
+                background-color: #a8d5ba;
+                color: #2c5530;
+                border-bottom: 1px solid #7fb069;
+            }
+            QMenuBar::item {
+                background-color: transparent;
+                padding: 5px 10px;
+            }
+            QMenuBar::item:selected {
+                background-color: #4682b4;
+                color: #ffffff;
+            }
+            QMenu {
+                background-color: #f8fffe;
+                color: #2c5530;
+                border: 1px solid #7fb069;
+            }
+            QMenu::item {
+                padding: 5px 10px;
+            }
+            QMenu::item:selected {
+                background-color: #4682b4;
+                color: #ffffff;
+            }
+            QStatusBar {
+                background-color: #a8d5ba;
+                color: #2c5530;
+                border-top: 1px solid #7fb069;
+            }
+        """)
     
     def create_menu_bar(self):
         """Create the menu bar"""
@@ -1196,6 +1379,15 @@ class MainWindow(QMainWindow):
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
         
+        # Settings menu
+        settings_menu = menubar.addMenu('Settings')
+        
+        self.dark_mode_action = QAction('Dark Mode', self)
+        self.dark_mode_action.setCheckable(True)
+        self.dark_mode_action.setChecked(self.dark_mode)
+        self.dark_mode_action.triggered.connect(self.toggle_dark_mode)
+        settings_menu.addAction(self.dark_mode_action)
+        
         # Help menu
         help_menu = menubar.addMenu('Help')
         
@@ -1208,6 +1400,15 @@ class MainWindow(QMainWindow):
         about_action = QAction('About', self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
+    
+    def toggle_dark_mode(self):
+        """Toggle between dark mode and nature theme"""
+        self.dark_mode = self.dark_mode_action.isChecked()
+        self.settings.setValue("dark_mode", self.dark_mode)
+        self.apply_theme()
+        
+        theme_name = "Dark Mode" if self.dark_mode else "Nature Theme"
+        self.status_bar.showMessage(f"Switched to {theme_name}")
     
     def create_rivers_tab(self):
         """Create the rivers management tab"""
@@ -1254,7 +1455,7 @@ class MainWindow(QMainWindow):
         
         self.delete_river_btn = QPushButton("Delete River")
         self.delete_river_btn.clicked.connect(self.delete_river)
-        self.delete_river_btn.setStyleSheet("QPushButton { background-color: #f44336; } QPushButton:hover { background-color: #da190b; }")
+        self.delete_river_btn.setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f44336, stop:1 #c62828); border: 2px solid #c62828; } QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #e57373, stop:1 #f44336); }")
         table_btn_layout.addWidget(self.delete_river_btn)
         
         table_btn_layout.addStretch()
@@ -1307,7 +1508,7 @@ class MainWindow(QMainWindow):
         
         self.delete_trip_btn = QPushButton("Delete Trip Log")
         self.delete_trip_btn.clicked.connect(self.delete_trip_log)
-        self.delete_trip_btn.setStyleSheet("QPushButton { background-color: #f44336; } QPushButton:hover { background-color: #da190b; }")
+        self.delete_trip_btn.setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f44336, stop:1 #c62828); border: 2px solid #c62828; } QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #e57373, stop:1 #f44336); }")
         btn_layout.addWidget(self.delete_trip_btn)
         
         btn_layout.addStretch()
@@ -1419,7 +1620,7 @@ class MainWindow(QMainWindow):
             return
         
         details_html = f"""
-        <h2>{river_data['name']}</h2>
+        <h2 style="color: #2c5530;">{river_data['name']}</h2>
         <p><strong>Location:</strong> {river_data['location']}</p>
         <p><strong>Region:</strong> {river_data.get('region', 'N/A')}</p>
         <p><strong>Difficulty:</strong> {river_data.get('difficulty_class', 'N/A')}</p>
@@ -1427,22 +1628,22 @@ class MainWindow(QMainWindow):
         <p><strong>Flow Range:</strong> {river_data['typical_flow_min'] or 'N/A'} - {river_data['typical_flow_max'] or 'N/A'} cfs</p>
         <p><strong>Personal Rating:</strong> {river_data['personal_rating'] or 'N/A'}/5</p>
         
-        <h3>Access Information</h3>
+        <h3 style="color: #4682b4;">Access Information</h3>
         <p><strong>Put-in:</strong> {river_data.get('put_in_location', 'N/A')}</p>
         <p><strong>Take-out:</strong> {river_data.get('take_out_location', 'N/A')}</p>
         <p><strong>Shuttle Info:</strong> {river_data.get('shuttle_info', 'N/A')}</p>
         
-        <h3>Conditions & Safety</h3>
+        <h3 style="color: #4682b4;">Conditions & Safety</h3>
         <p><strong>Best Seasons:</strong> {river_data.get('best_seasons', 'N/A')}</p>
         <p><strong>Hazards:</strong> {river_data.get('hazards', 'N/A')}</p>
         
-        <h3>Description</h3>
+        <h3 style="color: #4682b4;">Description</h3>
         <p>{river_data.get('description', 'No description available.')}</p>
         
-        <h3>Personal Notes</h3>
+        <h3 style="color: #4682b4;">Personal Notes</h3>
         <p>{river_data.get('notes', 'No notes.')}</p>
         
-        <h3>Tags</h3>
+        <h3 style="color: #4682b4;">Tags</h3>
         <p>{river_data.get('tags', 'No tags.')}</p>
         """
         
@@ -1675,15 +1876,15 @@ class MainWindow(QMainWindow):
         
         # Generate statistics HTML
         stats_html = f"""
-        <h2>River Runner Statistics</h2>
+        <h2 style="color: #2c5530;">River Runner Statistics</h2>
         
-        <h3>Rivers</h3>
+        <h3 style="color: #4682b4;">Rivers</h3>
         <ul>
             <li><strong>Total Rivers:</strong> {total_rivers}</li>
             <li><strong>Average Rating:</strong> {avg_rating:.1f}/5</li>
         </ul>
         
-        <h3>Difficulty Breakdown</h3>
+        <h3 style="color: #4682b4;">Difficulty Breakdown</h3>
         <ul>
         """
         
@@ -1693,13 +1894,13 @@ class MainWindow(QMainWindow):
         stats_html += f"""
         </ul>
         
-        <h3>Trip Logs</h3>
+        <h3 style="color: #4682b4;">Trip Logs</h3>
         <ul>
             <li><strong>Total Trips:</strong> {total_trips}</li>
             <li><strong>Total Hours Paddled:</strong> {total_trip_hours:.1f}</li>
         </ul>
         
-        <h3>Most Recent Trips</h3>
+        <h3 style="color: #4682b4;">Most Recent Trips</h3>
         <ul>
         """
         
@@ -1760,7 +1961,9 @@ class MainWindow(QMainWindow):
             "• File attachments\n"
             "• Trip logging\n"
             "• Statistics and reporting\n"
-            "• Data export capabilities"
+            "• Data export capabilities\n"
+            "• Beautiful nature-inspired themes\n"
+            "• Dark mode support"
         )
 
 
