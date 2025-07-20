@@ -2,7 +2,7 @@
 
 > **A comprehensive desktop application for whitewater enthusiasts to catalog rivers, track paddling trips, and organize their adventures.**
 
-Built with PyQt6, featuring a modern dark theme interface with intuitive two-column forms for efficient data entry.
+Built with PyQt6, featuring beautiful nature-inspired and dark themes with intuitive two-column forms for efficient data entry.
 
 ## 🌊 Key Features
 
@@ -10,6 +10,7 @@ Built with PyQt6, featuring a modern dark theme interface with intuitive two-col
 - Store detailed information including difficulty class, flow rates, access points, hazards, and GPS coordinates
 - Smart search & filtering by name, location, difficulty, or custom tags
 - Tagging system for categorization (scenic, technical, family-friendly, etc.)
+- Color-coded difficulty display (green for Class I-II, orange for Class III, red for Class IV-VI)
 
 ### 📝 **Trip Logging**
 - Record paddling sessions with companions, conditions, duration, and personal ratings
@@ -21,10 +22,11 @@ Built with PyQt6, featuring a modern dark theme interface with intuitive two-col
 - Clean file display with hover tooltips for technical details
 - Organized file storage with timestamp management
 
-### 📈 **Analytics & Export**
+### 📈 **Analytics & Import/Export**
 - Statistics dashboard tracking paddling hours and difficulty progression
 - Real-time updates when data changes
-- Export your database to JSON for backup or sharing
+- Export and import your database to JSON for backup, sharing, or transferring between devices
+- Smart duplicate detection prevents importing the same rivers or trips twice
 
 ## 🚀 Installation
 
@@ -67,10 +69,12 @@ pip install PyQt6 Pillow reportlab folium
 
 ## 📱 Interface Highlights
 
-- **🌙 Modern dark theme** - Easy on the eyes during long planning sessions
-- **📋 Two-column forms** - Efficient data entry and editing
+- **🌿 Beautiful themes** - Choose between vibrant nature-inspired colors or sleek dark mode
+- **⚙️ Persistent settings** - Your theme preference saves between sessions
+- **📋 Two-column forms** - Efficient data entry with red asterisks for required fields
 - **🔍 Smart filtering** - Find rivers quickly by any criteria
 - **💾 Auto-save functionality** - Never lose your data
+- **📊 Dynamic displays** - River details only show fields with actual data
 - **📊 Real-time statistics** - See your progress at a glance
 
 ## 🛠️ Technical Details
@@ -97,3 +101,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 *Star ⭐ this repo if you find it helpful!*
+
+---
+
+Developed by Jack Worthen[jackworthen](https://github.com/jackworthen)
