@@ -49,10 +49,6 @@ pip install PyQt6 Pillow reportlab folium
 
 3. **Start logging your adventures!** 🎉
 
-## 🖥️ Screenshots
-
-*Coming soon - Screenshots of the main interface, river forms, and statistics dashboard*
-
 ## 💻 System Requirements
 
 - **Python:** 3.8 or higher
