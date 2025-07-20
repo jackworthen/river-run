@@ -411,8 +411,8 @@ class RiverFormDialog(QDialog):
         # Create a grid layout for the top groups (2 columns)
         top_layout = QGridLayout()
         
-        # Basic Information Group (Column 1, Row 1)
-        basic_group = QGroupBox("Basic Information")
+        # River Information Group (Column 1, Row 1)
+        basic_group = QGroupBox("River Information")
         basic_layout = QFormLayout(basic_group)
         
         self.name_edit = QLineEdit()
@@ -1374,6 +1374,10 @@ class MainWindow(QMainWindow):
         # File menu
         file_menu = menubar.addMenu('File')
         
+        import_action = QAction('Import Data', self)
+        import_action.triggered.connect(self.import_data)
+        file_menu.addAction(import_action)
+        
         export_action = QAction('Export Data', self)
         export_action.triggered.connect(self.export_data)
         file_menu.addAction(export_action)
@@ -1637,7 +1641,7 @@ class MainWindow(QMainWindow):
         river_name_color = "#ffffff" if self.dark_mode else "#4682b4"
         
         # Get difficulty and apply color coding
-        difficulty = river_data.get('difficulty_class', 'N/A')
+        difficulty = river_data.get('difficulty_class', '')
         difficulty_styled = difficulty
         
         if difficulty in ['Class I', 'Class II']:
@@ -1649,33 +1653,83 @@ class MainWindow(QMainWindow):
         elif difficulty == 'Class VI':
             difficulty_styled = f'<span style="color: red; font-weight: bold; text-decoration: underline;">{difficulty}</span>'
         
-        details_html = f"""
-        <h2 style="color: {river_name_color};">{river_data['name']}</h2>
-        <p><strong>Location:</strong> {river_data['location']}</p>
-        <p><strong>Region:</strong> {river_data.get('region', 'N/A')}</p>
-        <p><strong>Difficulty:</strong> {difficulty_styled}</p>
-        <p><strong>Length:</strong> {river_data['length_miles'] or 'N/A'} miles</p>
-        <p><strong>Flow Range:</strong> {river_data['typical_flow_min'] or 'N/A'} - {river_data['typical_flow_max'] or 'N/A'} cfs</p>
-        <p><strong>Personal Rating:</strong> {river_data['personal_rating'] or 'N/A'}/5</p>
+        # Helper function to check if a field has meaningful data
+        def has_data(value):
+            return value and str(value).strip() and str(value).strip().lower() != 'n/a'
         
-        <h3 style="color: #4682b4;">Access Information</h3>
-        <p><strong>Put-in:</strong> {river_data.get('put_in_location', 'N/A')}</p>
-        <p><strong>Take-out:</strong> {river_data.get('take_out_location', 'N/A')}</p>
-        <p><strong>Shuttle Info:</strong> {river_data.get('shuttle_info', 'N/A')}</p>
+        # Start building the HTML
+        details_html = f'<h2 style="color: {river_name_color};">{river_data["name"]}</h2>'
         
-        <h3 style="color: #4682b4;">Conditions & Safety</h3>
-        <p><strong>Best Seasons:</strong> {river_data.get('best_seasons', 'N/A')}</p>
-        <p><strong>Hazards:</strong> {river_data.get('hazards', 'N/A')}</p>
+        # Always show location (required field)
+        details_html += f'<p><strong>Location:</strong> {river_data["location"]}</p>'
         
-        <h3 style="color: #4682b4;">Description</h3>
-        <p>{river_data.get('description', 'No description available.')}</p>
+        # Conditionally show other basic info
+        if has_data(river_data.get('region')):
+            details_html += f'<p><strong>Region:</strong> {river_data["region"]}</p>'
         
-        <h3 style="color: #4682b4;">Personal Notes</h3>
-        <p>{river_data.get('notes', 'No notes.')}</p>
+        if has_data(difficulty):
+            details_html += f'<p><strong>Difficulty:</strong> {difficulty_styled}</p>'
         
-        <h3 style="color: #4682b4;">Tags</h3>
-        <p>{river_data.get('tags', 'No tags.')}</p>
-        """
+        if has_data(river_data.get('length_miles')):
+            details_html += f'<p><strong>Length:</strong> {river_data["length_miles"]} miles</p>'
+        
+        # Flow range - only show if we have at least one value
+        flow_min = river_data.get('typical_flow_min')
+        flow_max = river_data.get('typical_flow_max')
+        if has_data(flow_min) or has_data(flow_max):
+            flow_min_text = str(flow_min) if has_data(flow_min) else '?'
+            flow_max_text = str(flow_max) if has_data(flow_max) else '?'
+            details_html += f'<p><strong>Flow Range:</strong> {flow_min_text} - {flow_max_text} cfs</p>'
+        
+        if has_data(river_data.get('personal_rating')):
+            details_html += f'<p><strong>Personal Rating:</strong> {river_data["personal_rating"]}/5</p>'
+        
+        # Access Information section - only show if we have at least one field
+        access_fields = []
+        if has_data(river_data.get('put_in_location')):
+            access_fields.append(f'<p><strong>Put-in:</strong> {river_data["put_in_location"]}</p>')
+        if has_data(river_data.get('take_out_location')):
+            access_fields.append(f'<p><strong>Take-out:</strong> {river_data["take_out_location"]}</p>')
+        if has_data(river_data.get('shuttle_info')):
+            access_fields.append(f'<p><strong>Shuttle Info:</strong> {river_data["shuttle_info"]}</p>')
+        if has_data(river_data.get('parking_details')):
+            access_fields.append(f'<p><strong>Parking:</strong> {river_data["parking_details"]}</p>')
+        
+        if access_fields:
+            details_html += '<h3 style="color: #4682b4;">Access Information</h3>'
+            details_html += ''.join(access_fields)
+        
+        # Conditions & Safety section - only show if we have at least one field
+        safety_fields = []
+        if has_data(river_data.get('best_seasons')):
+            safety_fields.append(f'<p><strong>Best Seasons:</strong> {river_data["best_seasons"]}</p>')
+        if has_data(river_data.get('water_level_source')):
+            safety_fields.append(f'<p><strong>Water Level Source:</strong> {river_data["water_level_source"]}</p>')
+        if has_data(river_data.get('hazards')):
+            safety_fields.append(f'<p><strong>Hazards:</strong> {river_data["hazards"]}</p>')
+        if has_data(river_data.get('portages')):
+            safety_fields.append(f'<p><strong>Portages:</strong> {river_data["portages"]}</p>')
+        if has_data(river_data.get('emergency_contacts')):
+            safety_fields.append(f'<p><strong>Emergency Contacts:</strong> {river_data["emergency_contacts"]}</p>')
+        
+        if safety_fields:
+            details_html += '<h3 style="color: #4682b4;">Conditions & Safety</h3>'
+            details_html += ''.join(safety_fields)
+        
+        # Description section
+        if has_data(river_data.get('description')):
+            details_html += '<h3 style="color: #4682b4;">Description</h3>'
+            details_html += f'<p>{river_data["description"]}</p>'
+        
+        # Personal Notes section
+        if has_data(river_data.get('notes')):
+            details_html += '<h3 style="color: #4682b4;">Personal Notes</h3>'
+            details_html += f'<p>{river_data["notes"]}</p>'
+        
+        # Tags section
+        if has_data(river_data.get('tags')):
+            details_html += '<h3 style="color: #4682b4;">Tags</h3>'
+            details_html += f'<p>{river_data["tags"]}</p>'
         
         self.river_details.setHtml(details_html)
     
@@ -1966,6 +2020,163 @@ class MainWindow(QMainWindow):
                 
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to export data: {str(e)}")
+    
+    def import_data(self):
+        """Import data from JSON"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import Data",
+            "",
+            "JSON Files (*.json)"
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            with open(file_path, 'r') as f:
+                import_data = json.load(f)
+            
+            # Validate the JSON structure
+            if not isinstance(import_data, dict) or 'rivers' not in import_data:
+                QMessageBox.critical(self, "Invalid File", "The selected file does not contain valid River Runner data.")
+                return
+            
+            rivers_data = import_data.get('rivers', [])
+            trips_data = import_data.get('trips', [])
+            
+            # Import rivers first, then trips (since trips depend on rivers)
+            rivers_imported, rivers_skipped = self.import_rivers(rivers_data)
+            trips_imported, trips_skipped = self.import_trips(trips_data)
+            
+            # Show summary
+            summary_msg = f"Import completed successfully!\n\n"
+            summary_msg += f"{'='*50}\n"
+            summary_msg += f"RIVERS:\n"
+            summary_msg += f"  • Imported:              {rivers_imported}\n"
+            summary_msg += f"  • Skipped (duplicates):  {rivers_skipped}\n\n"
+            summary_msg += f"TRIP LOGS:\n"
+            summary_msg += f"  • Imported:              {trips_imported}\n"
+            summary_msg += f"  • Skipped (duplicates):  {trips_skipped}\n"
+            summary_msg += f"{'='*50}"
+            
+            # Create a custom message box with wider dimensions
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("Import Complete")
+            msg_box.setText(summary_msg)
+            msg_box.setIcon(QMessageBox.Icon.Information)
+            msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+            
+            # Make the message box wider
+            msg_box.setStyleSheet("QMessageBox { min-width: 400px; }")
+            msg_box.exec()
+            
+            # Refresh the UI
+            self.refresh_rivers_table()
+            self.refresh_trips_table()
+            self.update_statistics()
+            
+            self.status_bar.showMessage(f"Imported {rivers_imported} rivers and {trips_imported} trips")
+            
+        except json.JSONDecodeError:
+            QMessageBox.critical(self, "Invalid File", "The selected file is not a valid JSON file.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to import data: {str(e)}")
+    
+    def import_rivers(self, rivers_data):
+        """Import rivers and return counts of imported and skipped"""
+        imported_count = 0
+        skipped_count = 0
+        
+        existing_rivers = self.db_manager.get_all_rivers()
+        
+        # Create a set of existing river identifiers (name + location)
+        existing_identifiers = set()
+        for river in existing_rivers:
+            identifier = f"{river['name'].lower().strip()}|{river['location'].lower().strip()}"
+            existing_identifiers.add(identifier)
+        
+        for river_data in rivers_data:
+            # Create identifier for this river
+            river_name = river_data.get('name', '').lower().strip()
+            river_location = river_data.get('location', '').lower().strip()
+            identifier = f"{river_name}|{river_location}"
+            
+            # Skip if this river already exists
+            if identifier in existing_identifiers:
+                skipped_count += 1
+                continue
+            
+            # Remove the ID field if it exists (we want new IDs)
+            import_river = dict(river_data)
+            if 'id' in import_river:
+                del import_river['id']
+            if 'date_added' in import_river:
+                del import_river['date_added']
+            if 'last_updated' in import_river:
+                del import_river['last_updated']
+            
+            try:
+                self.db_manager.add_river(import_river)
+                existing_identifiers.add(identifier)  # Add to set to prevent duplicates within import
+                imported_count += 1
+            except Exception as e:
+                print(f"Error importing river {river_data.get('name', 'Unknown')}: {e}")
+                skipped_count += 1
+        
+        return imported_count, skipped_count
+    
+    def import_trips(self, trips_data):
+        """Import trip logs and return counts of imported and skipped"""
+        imported_count = 0
+        skipped_count = 0
+        
+        # Get current rivers to map names to IDs
+        current_rivers = self.db_manager.get_all_rivers()
+        river_name_to_id = {river['name'].lower().strip(): river['id'] for river in current_rivers}
+        
+        # Get existing trips to check for duplicates
+        existing_trips = self.db_manager.get_trip_logs()
+        existing_trip_identifiers = set()
+        for trip in existing_trips:
+            identifier = f"{trip['river_id']}|{trip['trip_date']}"
+            existing_trip_identifiers.add(identifier)
+        
+        for trip_data in trips_data:
+            # Map river name to current river ID
+            river_name = trip_data.get('river_name', '').lower().strip()
+            if river_name not in river_name_to_id:
+                skipped_count += 1  # Skip if river doesn't exist
+                continue
+            
+            new_river_id = river_name_to_id[river_name]
+            trip_date = trip_data.get('trip_date', '')
+            
+            # Check for duplicate (same river and date)
+            identifier = f"{new_river_id}|{trip_date}"
+            if identifier in existing_trip_identifiers:
+                skipped_count += 1
+                continue
+            
+            # Prepare trip data for import
+            import_trip = dict(trip_data)
+            import_trip['river_id'] = new_river_id
+            
+            # Remove fields that shouldn't be imported
+            fields_to_remove = ['id', 'river_name', 'created_date']
+            for field in fields_to_remove:
+                if field in import_trip:
+                    del import_trip[field]
+            
+            try:
+                self.db_manager.add_trip_log(import_trip)
+                existing_trip_identifiers.add(identifier)  # Add to set to prevent duplicates within import
+                imported_count += 1
+            except Exception as e:
+                print(f"Error importing trip for {trip_data.get('river_name', 'Unknown')}: {e}")
+                skipped_count += 1
+        
+        return imported_count, skipped_count
     
     def open_documentation(self):
         """Open documentation in default browser"""
