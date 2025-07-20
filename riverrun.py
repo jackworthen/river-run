@@ -1300,6 +1300,11 @@ class MainWindow(QMainWindow):
             }
             QListWidget::item:hover {
                 background-color: #f0f8ff;
+                color: #2c5530;
+            }
+            QListWidget::item:selected:hover {
+                background-color: #5a9bd4;
+                color: #ffffff;
             }
             QLabel {
                 color: #2c5530;
