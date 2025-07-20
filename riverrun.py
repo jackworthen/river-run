@@ -1412,6 +1412,15 @@ class MainWindow(QMainWindow):
         self.settings.setValue("dark_mode", self.dark_mode)
         self.apply_theme()
         
+        # Refresh river details if one is currently selected to update the river name color
+        current_row = self.rivers_table.currentRow()
+        if current_row >= 0:
+            river_id_item = self.rivers_table.item(current_row, 0)
+            if river_id_item:
+                river_id = int(river_id_item.text())
+                river_data = self.db_manager.get_river_by_id(river_id)
+                self.display_river_details(river_data)
+        
         theme_name = "Dark Mode" if self.dark_mode else "Nature Theme"
         self.status_bar.showMessage(f"Switched to {theme_name}")
     
@@ -1624,6 +1633,9 @@ class MainWindow(QMainWindow):
             self.river_details.clear()
             return
         
+        # Set river name color based on current theme
+        river_name_color = "#ffffff" if self.dark_mode else "#4682b4"
+        
         # Get difficulty and apply color coding
         difficulty = river_data.get('difficulty_class', 'N/A')
         difficulty_styled = difficulty
@@ -1638,7 +1650,7 @@ class MainWindow(QMainWindow):
             difficulty_styled = f'<span style="color: red; font-weight: bold; text-decoration: underline;">{difficulty}</span>'
         
         details_html = f"""
-        <h2 style="color: #2c5530;">{river_data['name']}</h2>
+        <h2 style="color: {river_name_color};">{river_data['name']}</h2>
         <p><strong>Location:</strong> {river_data['location']}</p>
         <p><strong>Region:</strong> {river_data.get('region', 'N/A')}</p>
         <p><strong>Difficulty:</strong> {difficulty_styled}</p>
