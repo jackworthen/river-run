@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-River Runner - A comprehensive application for logging and organizing rivers for whitewater sports
-Requires: pip install PyQt6 Pillow reportlab folium
-"""
-
 import sys
 import os
 import sqlite3
