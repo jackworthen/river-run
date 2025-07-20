@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Whitewater River Logger - A comprehensive application for logging and organizing rivers for whitewater sports
+River Runner - A comprehensive application for logging and organizing rivers for whitewater sports
 Requires: pip install PyQt6 Pillow reportlab folium
 """
 
@@ -27,7 +27,7 @@ from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal, QThread, QSize
 from PyQt6.QtGui import QPixmap, QIcon, QAction, QFont, QPalette, QColor
 
 class DatabaseManager:
-    """Handles all database operations for the whitewater river application"""
+    """Handles all database operations for the River Runner application"""
     
     def __init__(self, db_path: str = "river_data.db"):
         self.db_path = db_path
@@ -347,7 +347,7 @@ class RiverFormDialog(QDialog):
     def setup_ui(self):
         self.setWindowTitle("Add River" if not self.river_data else "Edit River")
         self.setModal(True)
-        self.resize(1000, 900)  # Optimized size to eliminate scrollbars
+        self.resize(1000, 750)  # Reduced height to eliminate dead space in Additional Information section
         
         layout = QVBoxLayout(self)
         
@@ -462,7 +462,10 @@ class RiverFormDialog(QDialog):
         
         # Left side - Description
         desc_left_layout = QVBoxLayout()
-        desc_left_layout.addWidget(QLabel("River Description:"))
+        desc_left_layout.setSpacing(2)  # Reduce spacing between label and text area
+        desc_label = QLabel("River Description:")
+        desc_label.setMaximumHeight(20)  # Limit label height
+        desc_left_layout.addWidget(desc_label)
         self.description_edit = QTextEdit()
         self.description_edit.setMinimumHeight(100)
         self.description_edit.setMaximumHeight(100)
@@ -471,7 +474,10 @@ class RiverFormDialog(QDialog):
         
         # Right side - Personal Notes
         notes_right_layout = QVBoxLayout()
-        notes_right_layout.addWidget(QLabel("Personal Notes & Tips:"))
+        notes_right_layout.setSpacing(2)  # Reduce spacing between label and text area
+        notes_label = QLabel("Personal Notes & Tips:")
+        notes_label.setMaximumHeight(20)  # Limit label height
+        notes_right_layout.addWidget(notes_label)
         self.notes_edit = QTextEdit()
         self.notes_edit.setMinimumHeight(100)
         self.notes_edit.setMaximumHeight(100)
@@ -499,7 +505,12 @@ class RiverFormDialog(QDialog):
         layout.addWidget(content_widget)
         
         # Dialog buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel)
+        
+        # Add custom Save button
+        save_button = button_box.addButton("Save", QDialogButtonBox.ButtonRole.AcceptRole)
+        save_button.setDefault(True)  # Make Save the default button
+        
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
@@ -761,11 +772,14 @@ class FileAttachmentWidget(QWidget):
                 shutil.copy2(file_path, new_file_path)
                 
                 # Add to database
+                file_name = os.path.basename(file_path)
+                base_name = os.path.splitext(file_name)[0]  # Remove extension for cleaner default description
+                
                 description, ok = QInputDialog.getText(
                     self, 
                     "File Description", 
                     f"Description for {file_name}:",
-                    text=file_name
+                    text=base_name  # Use base name without extension as default
                 )
                 
                 if ok:
@@ -785,9 +799,15 @@ class FileAttachmentWidget(QWidget):
         documents = self.db_manager.get_river_documents(self.river_id)
         
         for doc in documents:
-            item_text = f"{doc['description']} ({doc['file_name']})"
+            # Just show the description, not the timestamped filename
+            item_text = doc['description']
             item = QListWidgetItem(item_text)
             item.setData(Qt.ItemDataRole.UserRole, doc)
+            
+            # Add tooltip showing the actual filename and file info
+            tooltip = f"File: {doc['file_name']}\nSize: {doc['file_size']} bytes\nUploaded: {doc['upload_date'][:16]}"
+            item.setToolTip(tooltip)
+            
             self.file_list.addItem(item)
     
     def open_selected_file(self):
@@ -863,7 +883,7 @@ class MainWindow(QMainWindow):
         self.refresh_trips_table()
     
     def setup_ui(self):
-        self.setWindowTitle("Whitewater River Logger")
+        self.setWindowTitle("River Runner")
         self.setGeometry(100, 100, 1200, 800)
         
         # Set application style
@@ -1350,6 +1370,7 @@ class MainWindow(QMainWindow):
                 self.db_manager.update_river(river_id, updated_data)
                 self.refresh_rivers_table()
                 self.display_river_details(self.db_manager.get_river_by_id(river_id))
+                self.update_statistics()  # Refresh statistics to reflect changes
                 self.status_bar.showMessage(f"River '{updated_data['name']}' updated successfully!")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to update river: {str(e)}")
@@ -1461,7 +1482,7 @@ class MainWindow(QMainWindow):
         
         # Generate statistics HTML
         stats_html = f"""
-        <h2>Whitewater Statistics</h2>
+        <h2>River Runner Statistics</h2>
         
         <h3>Rivers</h3>
         <ul>
@@ -1526,8 +1547,8 @@ class MainWindow(QMainWindow):
         """Show about dialog"""
         QMessageBox.about(
             self,
-            "About Whitewater River Logger",
-            "Whitewater River Logger v1.0\n\n"
+            "About River Runner",
+            "River Runner v1.0\n\n"
             "A comprehensive application for logging and organizing rivers for whitewater sports.\n\n"
             "Features:\n"
             "• River information management\n"
@@ -1543,9 +1564,9 @@ def main():
     app = QApplication(sys.argv)
     
     # Set application properties
-    app.setApplicationName("Whitewater River Logger")
+    app.setApplicationName("River Runner")
     app.setApplicationVersion("1.0")
-    app.setOrganizationName("Whitewater Logger")
+    app.setOrganizationName("River Runner")
     
     # Create and show main window
     window = MainWindow()
