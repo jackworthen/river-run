@@ -425,8 +425,8 @@ class RiverFormDialog(QDialog):
         self.longitude_edit.setRange(-180, 180)
         self.longitude_edit.setDecimals(6)
         
-        basic_layout.addRow("Name*:", self.name_edit)
-        basic_layout.addRow("Location*:", self.location_edit)
+        basic_layout.addRow(QLabel("Name<span style='color: red;'>*</span>:"), self.name_edit)
+        basic_layout.addRow(QLabel("Location<span style='color: red;'>*</span>:"), self.location_edit)
         basic_layout.addRow("Region:", self.region_edit)
         basic_layout.addRow("Latitude:", self.latitude_edit)
         basic_layout.addRow("Longitude:", self.longitude_edit)
@@ -711,8 +711,8 @@ class TripLogDialog(QDialog):
         self.notes_edit.setMaximumHeight(80)
         
         # Add fields to form
-        form_layout.addRow("River*:", self.river_combo)
-        form_layout.addRow("Date*:", self.date_edit)
+        form_layout.addRow(QLabel("River<span style='color: red;'>*</span>:"), self.river_combo)
+        form_layout.addRow(QLabel("Date<span style='color: red;'>*</span>:"), self.date_edit)
         form_layout.addRow("Companions:", self.companions_edit)
         form_layout.addRow("Water Level:", self.water_level_edit)
         form_layout.addRow("Weather:", self.weather_edit)
@@ -2206,7 +2206,6 @@ class MainWindow(QMainWindow):
             "• Beautiful nature-inspired themes\n"
             "• Dark mode support"
         )
-
 
 def main():
     """Main application entry point"""
