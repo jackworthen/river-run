@@ -9,6 +9,7 @@ import os
 import sqlite3
 import json
 import shutil
+import webbrowser
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
@@ -992,7 +993,7 @@ class MainWindow(QMainWindow):
     
     def setup_ui(self):
         self.setWindowTitle("River Runner")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setGeometry(100, 100, 1230, 800)  # Fine-tuned width to just eliminate horizontal scrollbar
         
         # Set application style
         self.setStyleSheet("""
@@ -1203,6 +1204,12 @@ class MainWindow(QMainWindow):
         
         # Help menu
         help_menu = menubar.addMenu('Help')
+        
+        documentation_action = QAction('Documentation', self)
+        documentation_action.triggered.connect(self.open_documentation)
+        help_menu.addAction(documentation_action)
+        
+        help_menu.addSeparator()
         
         about_action = QAction('About', self)
         about_action.triggered.connect(self.show_about)
@@ -1734,6 +1741,18 @@ class MainWindow(QMainWindow):
                 
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to export data: {str(e)}")
+    
+    def open_documentation(self):
+        """Open documentation in default browser"""
+        try:
+            webbrowser.open("https://github.com/jackworthen/river-run")
+            self.status_bar.showMessage("Documentation opened in browser")
+        except Exception as e:
+            QMessageBox.warning(
+                self, 
+                "Browser Error", 
+                f"Could not open documentation in browser. Please visit:\nhttps://github.com/jackworthen/river-run\n\nError: {str(e)}"
+            )
     
     def show_about(self):
         """Show about dialog"""
