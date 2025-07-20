@@ -1619,11 +1619,24 @@ class MainWindow(QMainWindow):
             self.river_details.clear()
             return
         
+        # Get difficulty and apply color coding
+        difficulty = river_data.get('difficulty_class', 'N/A')
+        difficulty_styled = difficulty
+        
+        if difficulty in ['Class I', 'Class II']:
+            difficulty_styled = f'<span style="color: green; font-weight: bold;">{difficulty}</span>'
+        elif difficulty == 'Class III':
+            difficulty_styled = f'<span style="color: orange; font-weight: bold;">{difficulty}</span>'
+        elif difficulty in ['Class IV', 'Class V']:
+            difficulty_styled = f'<span style="color: red; font-weight: bold;">{difficulty}</span>'
+        elif difficulty == 'Class VI':
+            difficulty_styled = f'<span style="color: red; font-weight: bold; text-decoration: underline;">{difficulty}</span>'
+        
         details_html = f"""
         <h2 style="color: #2c5530;">{river_data['name']}</h2>
         <p><strong>Location:</strong> {river_data['location']}</p>
         <p><strong>Region:</strong> {river_data.get('region', 'N/A')}</p>
-        <p><strong>Difficulty:</strong> {river_data.get('difficulty_class', 'N/A')}</p>
+        <p><strong>Difficulty:</strong> {difficulty_styled}</p>
         <p><strong>Length:</strong> {river_data['length_miles'] or 'N/A'} miles</p>
         <p><strong>Flow Range:</strong> {river_data['typical_flow_min'] or 'N/A'} - {river_data['typical_flow_max'] or 'N/A'} cfs</p>
         <p><strong>Personal Rating:</strong> {river_data['personal_rating'] or 'N/A'}/5</p>
