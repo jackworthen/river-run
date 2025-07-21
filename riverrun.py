@@ -1100,6 +1100,7 @@ class MainWindow(QMainWindow):
         self.db_manager = DatabaseManager()
         self.settings = QSettings("RiverRunner", "RiverRunner")
         self.dark_mode = self.settings.value("dark_mode", False, type=bool)
+        self.include_trip_logs = self.settings.value("include_trip_logs", True, type=bool)
         self.setup_ui()
         self.apply_theme()
         self.refresh_rivers_table()
@@ -1562,6 +1563,14 @@ class MainWindow(QMainWindow):
         self.dark_mode_action.triggered.connect(self.toggle_dark_mode)
         settings_menu.addAction(self.dark_mode_action)
         
+        settings_menu.addSeparator()
+        
+        self.trip_logs_action = QAction('Import/Export Trip Logs', self)
+        self.trip_logs_action.setCheckable(True)
+        self.trip_logs_action.setChecked(self.include_trip_logs)
+        self.trip_logs_action.triggered.connect(self.toggle_trip_logs_setting)
+        settings_menu.addAction(self.trip_logs_action)
+        
         # Help menu
         help_menu = menubar.addMenu('Help')
         
@@ -1596,6 +1605,14 @@ class MainWindow(QMainWindow):
         
         theme_name = "Dark Mode" if self.dark_mode else "Nature Theme"
         self.status_bar.showMessage(f"Switched to {theme_name}")
+    
+    def toggle_trip_logs_setting(self):
+        """Toggle the trip logs import/export setting"""
+        self.include_trip_logs = self.trip_logs_action.isChecked()
+        self.settings.setValue("include_trip_logs", self.include_trip_logs)
+        
+        status_text = "enabled" if self.include_trip_logs else "disabled"
+        self.status_bar.showMessage(f"Trip logs import/export {status_text}")
     
     def create_rivers_tab(self):
         """Create the rivers management tab"""
@@ -2190,14 +2207,27 @@ class MainWindow(QMainWindow):
             try:
                 export_data = {
                     'rivers': self.db_manager.get_all_rivers(),
-                    'trips': self.db_manager.get_trip_logs(),
-                    'export_date': datetime.now().isoformat()
+                    'export_date': datetime.now().isoformat(),
+                    'includes_trip_logs': self.include_trip_logs
                 }
+                
+                # Only include trip logs if the setting is enabled
+                if self.include_trip_logs:
+                    export_data['trips'] = self.db_manager.get_trip_logs()
                 
                 with open(file_path, 'w') as f:
                     json.dump(export_data, f, indent=2, default=str)
                 
-                QMessageBox.information(self, "Success", f"Data exported to {file_path}")
+                # Show what was exported
+                rivers_count = len(export_data['rivers'])
+                trips_count = len(export_data.get('trips', []))
+                
+                if self.include_trip_logs:
+                    message = f"Data exported successfully!\n\nRivers: {rivers_count}\nTrip Logs: {trips_count}\n\nFile: {file_path}"
+                else:
+                    message = f"Rivers exported successfully!\n\nRivers: {rivers_count}\nTrip Logs: Not included (disabled in settings)\n\nFile: {file_path}"
+                
+                QMessageBox.information(self, "Export Complete", message)
                 
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to export data: {str(e)}")
@@ -2226,9 +2256,15 @@ class MainWindow(QMainWindow):
             rivers_data = import_data.get('rivers', [])
             trips_data = import_data.get('trips', [])
             
-            # Import rivers first, then trips (since trips depend on rivers)
+            # Import rivers first
             rivers_imported, rivers_skipped = self.import_rivers(rivers_data)
-            trips_imported, trips_skipped = self.import_trips(trips_data)
+            
+            # Only import trips if the setting is enabled AND trip data exists in the file
+            trips_imported, trips_skipped = 0, 0
+            if self.include_trip_logs and trips_data:
+                trips_imported, trips_skipped = self.import_trips(trips_data)
+            elif not self.include_trip_logs and trips_data:
+                trips_skipped = len(trips_data)  # Count as skipped since setting is disabled
             
             # Show summary
             summary_msg = f"Import completed successfully!\n\n"
@@ -2237,9 +2273,15 @@ class MainWindow(QMainWindow):
             summary_msg += f"  • Imported:              {rivers_imported}\n"
             summary_msg += f"  • Skipped (duplicates):  {rivers_skipped}\n\n"
             summary_msg += f"TRIP LOGS:\n"
-            summary_msg += f"  • Imported:              {trips_imported}\n"
-            summary_msg += f"  • Skipped (duplicates):  {trips_skipped}\n"
+            if self.include_trip_logs:
+                summary_msg += f"  • Imported:              {trips_imported}\n"
+                summary_msg += f"  • Skipped (duplicates):  {trips_skipped}\n"
+            else:
+                summary_msg += f"  • Skipped (setting disabled): {len(trips_data) if trips_data else 0}\n"
             summary_msg += f"{'='*50}"
+            
+            if not self.include_trip_logs and trips_data:
+                summary_msg += f"\n\nNote: Trip log import is disabled in Settings.\nTo import trip logs, enable 'Import/Export Trip Logs' in the Settings menu."
             
             # Create a custom message box with wider dimensions
             msg_box = QMessageBox(self)
