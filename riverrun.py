@@ -1565,7 +1565,7 @@ class MainWindow(QMainWindow):
         
         settings_menu.addSeparator()
         
-        self.trip_logs_action = QAction('Import/Export Trip Logs', self)
+        self.trip_logs_action = QAction('Include Trip Logs (Import/Export)', self)
         self.trip_logs_action.setCheckable(True)
         self.trip_logs_action.setChecked(self.include_trip_logs)
         self.trip_logs_action.triggered.connect(self.toggle_trip_logs_setting)
