@@ -1527,6 +1527,18 @@ class MainWindow(QMainWindow):
         # File menu
         file_menu = menubar.addMenu('File')
         
+        add_river_action = QAction('Add River', self)
+        add_river_action.setShortcut('Ctrl+R')
+        add_river_action.triggered.connect(self.add_river)
+        file_menu.addAction(add_river_action)
+        
+        add_trip_action = QAction('Add Trip Log', self)
+        add_trip_action.setShortcut('Ctrl+T')
+        add_trip_action.triggered.connect(self.add_trip_log)
+        file_menu.addAction(add_trip_action)
+        
+        file_menu.addSeparator()
+        
         import_action = QAction('Import Data', self)
         import_action.triggered.connect(self.import_data)
         file_menu.addAction(import_action)
