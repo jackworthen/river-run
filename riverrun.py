@@ -1812,6 +1812,10 @@ class MainWindow(QMainWindow):
         
         # Helper function to check if a field has meaningful data
         def has_data(value):
+            if value is None:
+                return False
+            if isinstance(value, (int, float)):
+                return True  # All numeric values are valid (including 0)
             return value and str(value).strip() and str(value).strip().lower() != 'n/a'
         
         # Start building the HTML
@@ -1819,6 +1823,14 @@ class MainWindow(QMainWindow):
         
         # Always show location (required field)
         details_html += f'<p><strong>Location:</strong> {river_data["location"]}</p>'
+        
+        # Show coordinates if available
+        lat = river_data.get('latitude')
+        lon = river_data.get('longitude')
+        if has_data(lat) or has_data(lon):
+            lat_text = f"{lat:.6f}" if has_data(lat) else "?"
+            lon_text = f"{lon:.6f}" if has_data(lon) else "?"
+            details_html += f'<p><strong>Coordinates:</strong> {lat_text}, {lon_text}</p>'
         
         # Conditionally show other basic info
         if has_data(river_data.get('region')):
