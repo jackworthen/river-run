@@ -396,6 +396,29 @@ class RiverFormDialog(QDialog):
         self.setup_ui()
         if river_data:
             self.populate_form(river_data)
+        
+        # Set icon for dialog
+        self.set_dialog_icon()
+    
+    def set_dialog_icon(self):
+        """Set the icon for this dialog"""
+        icon_path = self.get_icon_path()
+        if icon_path and os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+    
+    def get_icon_path(self):
+        """Get the path to the icon file"""
+        # Try different possible locations for the icon
+        possible_paths = [
+            "rr_icon.ico",  # Current directory
+            os.path.join(os.path.dirname(__file__), "rr_icon.ico"),  # Same directory as script
+            os.path.join(os.path.dirname(sys.executable), "rr_icon.ico"),  # Same directory as executable
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        return None
     
     def setup_ui(self):
         self.setWindowTitle("Add River" if not self.river_data else "Edit River")
@@ -655,6 +678,29 @@ class TripLogDialog(QDialog):
         self.setup_ui()
         if trip_data:
             self.populate_form(trip_data)
+        
+        # Set icon for dialog
+        self.set_dialog_icon()
+    
+    def set_dialog_icon(self):
+        """Set the icon for this dialog"""
+        icon_path = self.get_icon_path()
+        if icon_path and os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+    
+    def get_icon_path(self):
+        """Get the path to the icon file"""
+        # Try different possible locations for the icon
+        possible_paths = [
+            "rr_icon.ico",  # Current directory
+            os.path.join(os.path.dirname(__file__), "rr_icon.ico"),  # Same directory as script
+            os.path.join(os.path.dirname(sys.executable), "rr_icon.ico"),  # Same directory as executable
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        return None
     
     def setup_ui(self):
         self.setWindowTitle("Add Trip Log" if not self.trip_data else "Edit Trip Log")
@@ -987,6 +1033,32 @@ class MainWindow(QMainWindow):
         self.apply_theme()
         self.refresh_rivers_table()
         self.refresh_trips_table()
+        
+        # Set the application icon
+        self.set_application_icon()
+    
+    def set_application_icon(self):
+        """Set the application icon for the main window"""
+        icon_path = self.get_icon_path()
+        if icon_path and os.path.exists(icon_path):
+            icon = QIcon(icon_path)
+            self.setWindowIcon(icon)
+            # Also set it as the application icon
+            QApplication.instance().setWindowIcon(icon)
+    
+    def get_icon_path(self):
+        """Get the path to the icon file"""
+        # Try different possible locations for the icon
+        possible_paths = [
+            "rr_icon.ico",  # Current directory
+            os.path.join(os.path.dirname(__file__), "rr_icon.ico"),  # Same directory as script
+            os.path.join(os.path.dirname(sys.executable), "rr_icon.ico"),  # Same directory as executable
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        return None
     
     def setup_ui(self):
         self.setWindowTitle("River Runner")
