@@ -4,6 +4,7 @@ import sqlite3
 import json
 import shutil
 import webbrowser
+import platform
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
@@ -21,10 +22,74 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal, QThread, QSize, QSettings
 from PyQt6.QtGui import QPixmap, QIcon, QAction, QFont, QPalette, QColor
 
+def get_app_data_dir():
+    """Get the OS-specific application data directory"""
+    app_name = "RiverRunner"
+    
+    system = platform.system()
+    
+    if system == "Windows":
+        # Windows: %APPDATA%\RiverRunner
+        base_dir = os.environ.get('APPDATA', '')
+        if not base_dir:
+            # Fallback to user profile
+            base_dir = os.path.expanduser('~\\AppData\\Roaming')
+    elif system == "Darwin":  # macOS
+        # macOS: ~/Library/Application Support/RiverRunner
+        base_dir = os.path.expanduser('~/Library/Application Support')
+    else:  # Linux and other Unix-like systems
+        # Linux: ~/.local/share/RiverRunner
+        base_dir = os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share'))
+    
+    app_dir = os.path.join(base_dir, app_name)
+    
+    # Create the directory if it doesn't exist
+    os.makedirs(app_dir, exist_ok=True)
+    
+    return app_dir
+
+def migrate_old_data():
+    """Migrate data from current directory to app data directory if needed"""
+    app_dir = get_app_data_dir()
+    current_dir = os.getcwd()
+    
+    old_db_path = os.path.join(current_dir, "river_data.db")
+    new_db_path = os.path.join(app_dir, "river_data.db")
+    
+    old_attachments_dir = os.path.join(current_dir, "attachments")
+    new_attachments_dir = os.path.join(app_dir, "attachments")
+    
+    migrated = False
+    
+    # Migrate database file
+    if os.path.exists(old_db_path) and not os.path.exists(new_db_path):
+        try:
+            shutil.copy2(old_db_path, new_db_path)
+            print(f"Migrated database from {old_db_path} to {new_db_path}")
+            migrated = True
+        except Exception as e:
+            print(f"Failed to migrate database: {e}")
+    
+    # Migrate attachments directory
+    if os.path.exists(old_attachments_dir) and not os.path.exists(new_attachments_dir):
+        try:
+            shutil.copytree(old_attachments_dir, new_attachments_dir)
+            print(f"Migrated attachments from {old_attachments_dir} to {new_attachments_dir}")
+            migrated = True
+        except Exception as e:
+            print(f"Failed to migrate attachments: {e}")
+    
+    return migrated
+
 class DatabaseManager:
     """Handles all database operations for the River Runner application"""
     
-    def __init__(self, db_path: str = "river_data.db"):
+    def __init__(self, db_path: str = None):
+        if db_path is None:
+            # Use app data directory for database
+            app_dir = get_app_data_dir()
+            db_path = os.path.join(app_dir, "river_data.db")
+        
         self.db_path = db_path
         self.init_database()
     
@@ -855,7 +920,9 @@ class FileAttachmentWidget(QWidget):
         super().__init__(parent)
         self.river_id = None
         self.db_manager = None
-        self.attachments_dir = "attachments"
+        # Use app data directory for attachments
+        app_dir = get_app_data_dir()
+        self.attachments_dir = os.path.join(app_dir, "attachments")
         os.makedirs(self.attachments_dir, exist_ok=True)
         self.setup_ui()
     
@@ -1026,6 +1093,10 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
+        
+        # Migrate old data if it exists
+        migrated = migrate_old_data()
+        
         self.db_manager = DatabaseManager()
         self.settings = QSettings("RiverRunner", "RiverRunner")
         self.dark_mode = self.settings.value("dark_mode", False, type=bool)
@@ -1036,6 +1107,16 @@ class MainWindow(QMainWindow):
         
         # Set the application icon
         self.set_application_icon()
+        
+        # Show migration message if data was migrated
+        if migrated:
+            app_dir = get_app_data_dir()
+            QMessageBox.information(
+                self,
+                "Data Migrated",
+                f"Your River Runner data has been moved to the standard application data folder:\n\n{app_dir}\n\n"
+                "This follows operating system conventions and keeps your data safe and organized."
+            )
     
     def set_application_icon(self):
         """Set the application icon for the main window"""
@@ -1471,6 +1552,10 @@ class MainWindow(QMainWindow):
         
         # Help menu
         help_menu = menubar.addMenu('Help')
+        
+        data_location_action = QAction('Show Data Location', self)
+        data_location_action.triggered.connect(self.show_data_location)
+        help_menu.addAction(data_location_action)
         
         documentation_action = QAction('Documentation', self)
         documentation_action.triggered.connect(self.open_documentation)
@@ -2250,6 +2335,42 @@ class MainWindow(QMainWindow):
         
         return imported_count, skipped_count
     
+    def show_data_location(self):
+        """Show the user where their data is stored"""
+        app_dir = get_app_data_dir()
+        db_path = self.db_manager.db_path
+        
+        msg = f"Your River Runner data is stored in:\n\n"
+        msg += f"Data Folder: {app_dir}\n"
+        msg += f"Database: {db_path}\n"
+        msg += f"Attachments: {os.path.join(app_dir, 'attachments')}\n\n"
+        msg += "You can backup this entire folder to preserve all your river data and attachments."
+        
+        # Create message box with option to open folder
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Data Location")
+        msg_box.setText(msg)
+        msg_box.setIcon(QMessageBox.Icon.Information)
+        
+        # Add custom button to open folder
+        open_folder_button = msg_box.addButton("Open Folder", QMessageBox.ButtonRole.ActionRole)
+        ok_button = msg_box.addButton(QMessageBox.StandardButton.Ok)
+        msg_box.setDefaultButton(ok_button)
+        
+        result = msg_box.exec()
+        
+        # If user clicked "Open Folder", open the data directory
+        if msg_box.clickedButton() == open_folder_button:
+            try:
+                if platform.system() == "Windows":
+                    os.startfile(app_dir)
+                elif platform.system() == "Darwin":  # macOS
+                    os.system(f'open "{app_dir}"')
+                else:  # Linux
+                    os.system(f'xdg-open "{app_dir}"')
+            except Exception as e:
+                QMessageBox.warning(self, "Error", f"Could not open folder: {str(e)}")
+    
     def open_documentation(self):
         """Open documentation in default browser"""
         try:
@@ -2264,10 +2385,11 @@ class MainWindow(QMainWindow):
     
     def show_about(self):
         """Show about dialog"""
+        app_dir = get_app_data_dir()
         QMessageBox.about(
             self,
             "About River Runner",
-            "River Runner v1.0\n\n"
+            "River Runner v1.1\n\n"
             "A comprehensive application for logging and organizing rivers for whitewater sports.\n\n"
             "Features:\n"
             "• River information management\n"
@@ -2276,7 +2398,9 @@ class MainWindow(QMainWindow):
             "• Statistics and reporting\n"
             "• Data export capabilities\n"
             "• Beautiful nature-inspired themes\n"
-            "• Dark mode support"
+            "• Dark mode support\n"
+            "• Cross-platform data storage\n\n"
+            f"Data stored in: {app_dir}"
         )
 
 def main():
@@ -2285,7 +2409,7 @@ def main():
     
     # Set application properties
     app.setApplicationName("River Runner")
-    app.setApplicationVersion("1.0")
+    app.setApplicationVersion("1.1")
     app.setOrganizationName("River Runner")
     
     # Create and show main window
