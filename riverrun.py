@@ -1652,11 +1652,11 @@ class MainWindow(QMainWindow):
         
         self.river_details = QTextEdit()
         self.river_details.setReadOnly(True)
-        details_layout.addWidget(self.river_details)
+        details_layout.addWidget(self.river_details, 3)  # River details get 3 parts of the space
         
         # File attachments
         self.file_attachment_widget = FileAttachmentWidget()
-        details_layout.addWidget(self.file_attachment_widget)
+        details_layout.addWidget(self.file_attachment_widget, 2)  # Attachments get 2 parts of the space
         
         splitter.addWidget(details_widget)
         
