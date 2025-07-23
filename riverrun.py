@@ -22,6 +22,31 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QDate, QTimer, pyqtSignal, QThread, QSize, QSettings
 from PyQt6.QtGui import QPixmap, QIcon, QAction, QFont, QPalette, QColor
 
+def get_resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
+
+def get_icon_path():
+    """Get the path to the icon file, works for both development and PyInstaller"""
+    # Try different possible locations for the icon
+    possible_paths = [
+        get_resource_path("rr_icon.ico"),  # Bundled with PyInstaller
+        "rr_icon.ico",  # Current directory (development)
+        os.path.join(os.path.dirname(__file__), "rr_icon.ico"),  # Same directory as script
+        os.path.join(os.path.dirname(sys.executable), "rr_icon.ico"),  # Same directory as executable
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    return None
+
 def get_app_data_dir():
     """Get the OS-specific application data directory"""
     app_name = "RiverRunner"
@@ -467,23 +492,9 @@ class RiverFormDialog(QDialog):
     
     def set_dialog_icon(self):
         """Set the icon for this dialog"""
-        icon_path = self.get_icon_path()
+        icon_path = get_icon_path()
         if icon_path and os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
-    
-    def get_icon_path(self):
-        """Get the path to the icon file"""
-        # Try different possible locations for the icon
-        possible_paths = [
-            "rr_icon.ico",  # Current directory
-            os.path.join(os.path.dirname(__file__), "rr_icon.ico"),  # Same directory as script
-            os.path.join(os.path.dirname(sys.executable), "rr_icon.ico"),  # Same directory as executable
-        ]
-        
-        for path in possible_paths:
-            if os.path.exists(path):
-                return path
-        return None
     
     def setup_ui(self):
         self.setWindowTitle("Add River" if not self.river_data else "Edit River")
@@ -749,23 +760,9 @@ class TripLogDialog(QDialog):
     
     def set_dialog_icon(self):
         """Set the icon for this dialog"""
-        icon_path = self.get_icon_path()
+        icon_path = get_icon_path()
         if icon_path and os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
-    
-    def get_icon_path(self):
-        """Get the path to the icon file"""
-        # Try different possible locations for the icon
-        possible_paths = [
-            "rr_icon.ico",  # Current directory
-            os.path.join(os.path.dirname(__file__), "rr_icon.ico"),  # Same directory as script
-            os.path.join(os.path.dirname(sys.executable), "rr_icon.ico"),  # Same directory as executable
-        ]
-        
-        for path in possible_paths:
-            if os.path.exists(path):
-                return path
-        return None
     
     def setup_ui(self):
         self.setWindowTitle("Add Trip Log" if not self.trip_data else "Edit Trip Log")
@@ -1120,27 +1117,13 @@ class MainWindow(QMainWindow):
             )
     
     def set_application_icon(self):
-        """Set the application icon for the main window"""
-        icon_path = self.get_icon_path()
+        """Set the application icon for the main window and application"""
+        icon_path = get_icon_path()
         if icon_path and os.path.exists(icon_path):
             icon = QIcon(icon_path)
             self.setWindowIcon(icon)
-            # Also set it as the application icon
+            # Also set it as the application icon for taskbar
             QApplication.instance().setWindowIcon(icon)
-    
-    def get_icon_path(self):
-        """Get the path to the icon file"""
-        # Try different possible locations for the icon
-        possible_paths = [
-            "rr_icon.ico",  # Current directory
-            os.path.join(os.path.dirname(__file__), "rr_icon.ico"),  # Same directory as script
-            os.path.join(os.path.dirname(sys.executable), "rr_icon.ico"),  # Same directory as executable
-        ]
-        
-        for path in possible_paths:
-            if os.path.exists(path):
-                return path
-        return None
     
     def setup_ui(self):
         self.setWindowTitle("River Runner")
@@ -1553,6 +1536,7 @@ class MainWindow(QMainWindow):
         exit_action = QAction('Exit', self)
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
+        
         
         # Settings menu
         settings_menu = menubar.addMenu('Settings')
@@ -2477,6 +2461,11 @@ def main():
     app.setApplicationName("River Runner")
     app.setApplicationVersion("1.1")
     app.setOrganizationName("River Runner")
+    
+    # Set application icon early for taskbar display
+    icon_path = get_icon_path()
+    if icon_path and os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
     
     # Create and show main window
     window = MainWindow()
