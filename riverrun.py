@@ -106,6 +106,19 @@ def migrate_old_data():
     
     return migrated
 
+def get_difficulty_color(difficulty):
+    """Get the color for a difficulty class"""
+    if difficulty in ['Class I', 'Class II']:
+        return QColor('green')
+    elif difficulty == 'Class III':
+        return QColor('orange')
+    elif difficulty in ['Class IV', 'Class V']:
+        return QColor('red')
+    elif difficulty == 'Class VI':
+        return QColor('#C71585')  # Pinkish purple
+    else:
+        return None  # Use default color
+
 class DatabaseManager:
     """Handles all database operations for the River Runner application"""
     
@@ -1127,7 +1140,7 @@ class MainWindow(QMainWindow):
     
     def setup_ui(self):
         self.setWindowTitle("River Runner")
-        self.setGeometry(100, 100, 1230, 800)  # Fine-tuned width to just eliminate horizontal scrollbar
+        self.setGeometry(100, 100, 1275, 800)  # Updated width to 1275
         
         # Create central widget and main layout
         central_widget = QWidget()
@@ -1737,6 +1750,7 @@ class MainWindow(QMainWindow):
             self.rivers_table.setItem(row, 0, QTableWidgetItem(str(river['id'])))
             self.rivers_table.setItem(row, 1, QTableWidgetItem(river['name']))
             self.rivers_table.setItem(row, 2, QTableWidgetItem(river['location']))
+            
             self.rivers_table.setItem(row, 3, QTableWidgetItem(river['difficulty_class'] or ''))
             
             length_text = f"{river['length_miles']:.1f}" if river['length_miles'] else ''
@@ -1780,6 +1794,7 @@ class MainWindow(QMainWindow):
             self.rivers_table.setItem(row, 0, QTableWidgetItem(str(river['id'])))
             self.rivers_table.setItem(row, 1, QTableWidgetItem(river['name']))
             self.rivers_table.setItem(row, 2, QTableWidgetItem(river['location']))
+            
             self.rivers_table.setItem(row, 3, QTableWidgetItem(river['difficulty_class'] or ''))
             
             length_text = f"{river['length_miles']:.1f}" if river['length_miles'] else ''
@@ -1821,7 +1836,7 @@ class MainWindow(QMainWindow):
         elif difficulty in ['Class IV', 'Class V']:
             difficulty_styled = f'<span style="color: red; font-weight: bold;">{difficulty}</span>'
         elif difficulty == 'Class VI':
-            difficulty_styled = f'<span style="color: red; font-weight: bold; text-decoration: underline;">{difficulty}</span>'
+            difficulty_styled = f'<span style="color: #C71585; font-weight: bold;">{difficulty}</span>'  # Changed to pinkish purple without underline
         
         # Helper function to check if a field has meaningful data
         def has_data(value):
