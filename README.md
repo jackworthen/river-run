@@ -7,26 +7,46 @@ Built with PyQt6, featuring beautiful nature-inspired and dark themes with intui
 ## 🌊 Key Features
 
 ### 📊 **River Database**
-- Store detailed information including difficulty class, flow rates, access points, hazards, and GPS coordinates
+- Store detailed information including difficulty class, GPS coordinates, and personal ratings
+- **Dual water level tracking:** Flow rates (CFS) AND water depth (feet) for comprehensive measurement
+- Complete access details: put-in/take-out locations, shuttle info, and parking details
+- Safety information: hazards, portages, emergency contacts, and best seasons
+- Water level source tracking for gauge monitoring
 - Smart search & filtering by name, location, difficulty, or custom tags
 - Tagging system for categorization (scenic, technical, family-friendly, etc.)
 - Color-coded difficulty display (green for Class I-II, orange for Class III, red for Class IV-VI)
 
 ### 📝 **Trip Logging**
 - Record paddling sessions with companions, conditions, duration, and personal ratings
+- Track water levels, weather conditions, and flow rates during your trips
+- Document highlights, challenges, and gear used
 - Edit and delete trip logs with full CRUD functionality
 - Track your paddling progression over time
 
 ### 📎 **File Management**
 - Attach photos, maps, and documents to river entries
 - Clean file display with hover tooltips for technical details
-- Organized file storage with timestamp management
+- Organized file storage with automatic timestamp management
+- Cross-platform file attachment system
 
-### 📈 **Analytics & Import/Export**
-- Statistics dashboard tracking paddling hours and difficulty progression
+### 📈 **Analytics & Statistics**
+- Statistics dashboard tracking total rivers, paddling hours, and difficulty progression
 - Real-time updates when data changes
+- Most recent trips display
+- Average ratings and difficulty breakdowns
+
+### 💾 **Data Management**
 - Export and import your database to JSON for backup, sharing, or transferring between devices
 - Smart duplicate detection prevents importing the same rivers or trips twice
+- Automatic database migration and backward compatibility
+- Cross-platform data storage in OS-appropriate locations
+- Optional trip log inclusion in import/export operations
+
+### ⚙️ **Settings & Preferences**
+- Toggle between nature-inspired and dark themes
+- Persistent settings that save between sessions
+- Configurable import/export options
+- Data location management and backup guidance
 
 ## 🚀 Installation
 
@@ -66,19 +86,21 @@ pip install PyQt6 Pillow reportlab folium
 ## 📱 Interface Highlights
 
 - **🌿 Beautiful themes** - Choose between vibrant nature-inspired colors or sleek dark mode
-- **⚙️ Persistent settings** - Your theme preference saves between sessions
+- **⚙️ Persistent settings** - Your theme preference and options save between sessions
 - **📋 Two-column forms** - Efficient data entry with red asterisks for required fields
 - **🔍 Smart filtering** - Find rivers quickly by any criteria
 - **💾 Auto-save functionality** - Never lose your data
 - **📊 Dynamic displays** - River details only show fields with actual data
 - **📊 Real-time statistics** - See your progress at a glance
+- **🔄 Side-by-side measurements** - Track both flow rates and water depths simultaneously
 
 ## 🛠️ Technical Details
 
 - **Framework:** PyQt6 for cross-platform GUI
-- **Database:** SQLite for reliable local storage
+- **Database:** SQLite for reliable local storage with automatic migration
 - **Architecture:** Clean MVC pattern with modular design
 - **File Handling:** Automatic organization and timestamp management
+- **Data Storage:** OS-appropriate application data directories
 
 ## 🤝 Contributing
 
@@ -100,4 +122,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-Developed by Jack Worthen[jackworthen](https://github.com/jackworthen)
+Developed by [Jack Worthen](https://github.com/jackworthen)
