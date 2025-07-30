@@ -149,6 +149,8 @@ class DatabaseManager:
                 length_miles REAL,
                 typical_flow_min INTEGER,
                 typical_flow_max INTEGER,
+                water_depth_min INTEGER,
+                water_depth_max INTEGER,
                 put_in_location TEXT,
                 take_out_location TEXT,
                 shuttle_info TEXT,
@@ -214,13 +216,27 @@ class DatabaseManager:
             )
         ''')
         
-        # Handle database migration - add tags column if it doesn't exist
-        try:
-            cursor.execute("ALTER TABLE rivers ADD COLUMN tags TEXT")
-            conn.commit()
-        except sqlite3.OperationalError:
-            # Column already exists, ignore the error
-            pass
+        # Handle database migration - add new columns if they don't exist
+        # Check existing columns first to avoid unnecessary operations
+        cursor.execute("PRAGMA table_info(rivers)")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+        
+        # Define required columns and their SQL
+        required_columns = {
+            'tags': "ALTER TABLE rivers ADD COLUMN tags TEXT",
+            'water_depth_min': "ALTER TABLE rivers ADD COLUMN water_depth_min INTEGER",
+            'water_depth_max': "ALTER TABLE rivers ADD COLUMN water_depth_max INTEGER"
+        }
+        
+        # Only add columns that don't exist
+        for column_name, sql in required_columns.items():
+            if column_name not in existing_columns:
+                try:
+                    cursor.execute(sql)
+                    conn.commit()
+                    print(f"Added {column_name} column")
+                except sqlite3.OperationalError as e:
+                    print(f"Error adding {column_name} column: {e}")
         
         conn.commit()
         conn.close()
@@ -233,11 +249,11 @@ class DatabaseManager:
         cursor.execute('''
             INSERT INTO rivers (
                 name, location, region, latitude, longitude, difficulty_class,
-                length_miles, typical_flow_min, typical_flow_max, put_in_location,
-                take_out_location, shuttle_info, parking_details, best_seasons,
+                length_miles, typical_flow_min, typical_flow_max, water_depth_min, water_depth_max,
+                put_in_location, take_out_location, shuttle_info, parking_details, best_seasons,
                 water_level_source, hazards, portages, emergency_contacts,
                 description, personal_rating, notes, tags
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             river_data.get('name', ''),
             river_data.get('location', ''),
@@ -248,6 +264,8 @@ class DatabaseManager:
             river_data.get('length_miles'),
             river_data.get('typical_flow_min'),
             river_data.get('typical_flow_max'),
+            river_data.get('water_depth_min'),
+            river_data.get('water_depth_max'),
             river_data.get('put_in_location', ''),
             river_data.get('take_out_location', ''),
             river_data.get('shuttle_info', ''),
@@ -300,8 +318,8 @@ class DatabaseManager:
         cursor.execute('''
             UPDATE rivers SET
                 name=?, location=?, region=?, latitude=?, longitude=?, difficulty_class=?,
-                length_miles=?, typical_flow_min=?, typical_flow_max=?, put_in_location=?,
-                take_out_location=?, shuttle_info=?, parking_details=?, best_seasons=?,
+                length_miles=?, typical_flow_min=?, typical_flow_max=?, water_depth_min=?, water_depth_max=?,
+                put_in_location=?, take_out_location=?, shuttle_info=?, parking_details=?, best_seasons=?,
                 water_level_source=?, hazards=?, portages=?, emergency_contacts=?,
                 description=?, personal_rating=?, notes=?, tags=?, last_updated=CURRENT_TIMESTAMP
             WHERE id=?
@@ -315,6 +333,8 @@ class DatabaseManager:
             river_data.get('length_miles'),
             river_data.get('typical_flow_min'),
             river_data.get('typical_flow_max'),
+            river_data.get('water_depth_min'),
+            river_data.get('water_depth_max'),
             river_data.get('put_in_location', ''),
             river_data.get('take_out_location', ''),
             river_data.get('shuttle_info', ''),
@@ -545,7 +565,10 @@ class RiverFormDialog(QDialog):
         
         # Whitewater Details Group (Column 2, Row 1)
         whitewater_group = QGroupBox("Whitewater Details")
-        whitewater_layout = QFormLayout(whitewater_group)
+        whitewater_layout = QVBoxLayout(whitewater_group)
+        
+        # Basic whitewater info
+        basic_whitewater_layout = QFormLayout()
         
         self.difficulty_combo = QComboBox()
         self.difficulty_combo.addItems(["", "Class I", "Class II", "Class III", "Class IV", "Class V", "Class VI"])
@@ -554,6 +577,22 @@ class RiverFormDialog(QDialog):
         self.length_edit.setDecimals(1)
         self.length_edit.setSuffix(" miles")
         
+        self.rating_combo = QComboBox()
+        self.rating_combo.addItems(["", "1 - Poor", "2 - Fair", "3 - Good", "4 - Very Good", "5 - Excellent"])
+        
+        basic_whitewater_layout.addRow("Difficulty Class:", self.difficulty_combo)
+        basic_whitewater_layout.addRow("Length:", self.length_edit)
+        basic_whitewater_layout.addRow("Personal Rating:", self.rating_combo)
+        
+        whitewater_layout.addLayout(basic_whitewater_layout)
+        
+        # Water Level Measurements - Side by Side
+        measurements_layout = QHBoxLayout()
+        
+        # Flow Rate Section
+        flow_rate_group = QGroupBox("Flow Rate (CFS)")
+        flow_rate_layout = QFormLayout(flow_rate_group)
+        
         self.flow_min_edit = QSpinBox()
         self.flow_min_edit.setRange(0, 50000)
         self.flow_min_edit.setSuffix(" cfs")
@@ -561,14 +600,28 @@ class RiverFormDialog(QDialog):
         self.flow_max_edit.setRange(0, 50000)
         self.flow_max_edit.setSuffix(" cfs")
         
-        self.rating_combo = QComboBox()
-        self.rating_combo.addItems(["", "1 - Poor", "2 - Fair", "3 - Good", "4 - Very Good", "5 - Excellent"])
+        flow_rate_layout.addRow("Min Flow:", self.flow_min_edit)
+        flow_rate_layout.addRow("Max Flow:", self.flow_max_edit)
         
-        whitewater_layout.addRow("Difficulty Class:", self.difficulty_combo)
-        whitewater_layout.addRow("Length:", self.length_edit)
-        whitewater_layout.addRow("Min Flow Rate:", self.flow_min_edit)
-        whitewater_layout.addRow("Max Flow Rate:", self.flow_max_edit)
-        whitewater_layout.addRow("Personal Rating:", self.rating_combo)
+        measurements_layout.addWidget(flow_rate_group)
+        
+        # Water Depth Section
+        water_depth_group = QGroupBox("Water Depth (ft)")
+        water_depth_layout = QFormLayout(water_depth_group)
+        
+        self.depth_min_edit = QSpinBox()
+        self.depth_min_edit.setRange(0, 100)
+        self.depth_min_edit.setSuffix(" ft")
+        self.depth_max_edit = QSpinBox()
+        self.depth_max_edit.setRange(0, 100)
+        self.depth_max_edit.setSuffix(" ft")
+        
+        water_depth_layout.addRow("Min Depth:", self.depth_min_edit)
+        water_depth_layout.addRow("Max Depth:", self.depth_max_edit)
+        
+        measurements_layout.addWidget(water_depth_group)
+        
+        whitewater_layout.addLayout(measurements_layout)
         
         # Access Information Group (Column 1, Row 2)
         access_group = QGroupBox("Access Information")
@@ -699,6 +752,10 @@ class RiverFormDialog(QDialog):
             self.flow_min_edit.setValue(river_data['typical_flow_min'])
         if river_data.get('typical_flow_max'):
             self.flow_max_edit.setValue(river_data['typical_flow_max'])
+        if river_data.get('water_depth_min'):
+            self.depth_min_edit.setValue(river_data['water_depth_min'])
+        if river_data.get('water_depth_max'):
+            self.depth_max_edit.setValue(river_data['water_depth_max'])
         
         if river_data.get('personal_rating'):
             rating_text = f"{river_data['personal_rating']} - "
@@ -740,6 +797,8 @@ class RiverFormDialog(QDialog):
             'length_miles': self.length_edit.value() if self.length_edit.value() != 0 else None,
             'typical_flow_min': self.flow_min_edit.value() if self.flow_min_edit.value() != 0 else None,
             'typical_flow_max': self.flow_max_edit.value() if self.flow_max_edit.value() != 0 else None,
+            'water_depth_min': self.depth_min_edit.value() if self.depth_min_edit.value() != 0 else None,
+            'water_depth_max': self.depth_max_edit.value() if self.depth_max_edit.value() != 0 else None,
             'personal_rating': rating,
             'put_in_location': self.put_in_edit.text().strip(),
             'take_out_location': self.take_out_edit.text().strip(),
@@ -1870,13 +1929,29 @@ class MainWindow(QMainWindow):
         if has_data(river_data.get('length_miles')):
             details_html += f'<p><strong>Length:</strong> {river_data["length_miles"]} miles</p>'
         
+        # Water Level Information section - show both flow rate and depth if available
+        water_level_fields = []
+        
         # Flow range - only show if we have at least one value
         flow_min = river_data.get('typical_flow_min')
         flow_max = river_data.get('typical_flow_max')
         if has_data(flow_min) or has_data(flow_max):
             flow_min_text = str(flow_min) if has_data(flow_min) else '?'
             flow_max_text = str(flow_max) if has_data(flow_max) else '?'
-            details_html += f'<p><strong>Flow Range:</strong> {flow_min_text} - {flow_max_text} cfs</p>'
+            water_level_fields.append(f'<p><strong>Flow Range:</strong> {flow_min_text} - {flow_max_text} cfs</p>')
+        
+        # Water depth range - only show if we have at least one value
+        depth_min = river_data.get('water_depth_min')
+        depth_max = river_data.get('water_depth_max')
+        if has_data(depth_min) or has_data(depth_max):
+            depth_min_text = str(depth_min) if has_data(depth_min) else '?'
+            depth_max_text = str(depth_max) if has_data(depth_max) else '?'
+            water_level_fields.append(f'<p><strong>Water Depth Range:</strong> {depth_min_text} - {depth_max_text} ft</p>')
+        
+        # Add water level section if we have any water level info
+        if water_level_fields:
+            details_html += '<h3 style="color: #4682b4;">Water Level Information</h3>'
+            details_html += ''.join(water_level_fields)
         
         if has_data(river_data.get('personal_rating')):
             details_html += f'<p><strong>Personal Rating:</strong> {river_data["personal_rating"]}/5</p>'
@@ -2454,7 +2529,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "About River Runner",
-            "River Runner v1.1\n\n"
+            "River Runner v1.2\n\n"
             "A comprehensive application for logging and organizing rivers for whitewater sports.\n\n"
             "Features:\n"
             "• River information management\n"
@@ -2464,7 +2539,8 @@ class MainWindow(QMainWindow):
             "• Data export capabilities\n"
             "• Beautiful nature-inspired themes\n"
             "• Dark mode support\n"
-            "• Cross-platform data storage\n\n"
+            "• Cross-platform data storage\n"
+            "• Water depth and flow rate tracking\n\n"
             f"Data stored in: {app_dir}"
         )
 
@@ -2474,7 +2550,7 @@ def main():
     
     # Set application properties
     app.setApplicationName("River Runner")
-    app.setApplicationVersion("1.1")
+    app.setApplicationVersion("1.2")
     app.setOrganizationName("River Runner")
     
     # Set application icon early for taskbar display
