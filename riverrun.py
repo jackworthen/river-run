@@ -2232,7 +2232,7 @@ class MainWindow(QMainWindow):
         
         # Generate statistics HTML
         stats_html = f"""
-        <h2 style="color: #ffffff;">River Runner Statistics</h2>
+        <h2 style="color: #4682b4;">River Runner Statistics</h2>
         
         <h3 style="color: #4682b4;">Rivers</h3>
         <ul>
