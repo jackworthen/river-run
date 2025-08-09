@@ -1157,6 +1157,22 @@ class FileAttachmentWidget(QWidget):
                 QMessageBox.critical(self, "Error", f"Failed to remove file: {str(e)}")
 
 
+class SortableTableWidgetItem(QTableWidgetItem):
+    """A QTableWidgetItem that properly handles numeric sorting"""
+    
+    def __init__(self, text, sort_key=None):
+        super().__init__(text)
+        self.sort_key = sort_key
+    
+    def __lt__(self, other):
+        if self.sort_key is not None and hasattr(other, 'sort_key') and other.sort_key is not None:
+            # Both items have sort keys, compare them
+            return self.sort_key < other.sort_key
+        
+        # Fall back to string comparison
+        return super().__lt__(other)
+
+
 class MainWindow(QMainWindow):
     """Main application window"""
     
@@ -1323,6 +1339,9 @@ class MainWindow(QMainWindow):
                 padding: 5px;
                 border: 1px solid #555555;
                 font-weight: bold;
+            }
+            QHeaderView::section:hover {
+                background-color: #505050;
             }
             QListWidget {
                 background-color: #333333;
@@ -1493,6 +1512,10 @@ class MainWindow(QMainWindow):
                 padding: 5px;
                 border: 1px solid #7fb069;
                 font-weight: bold;
+            }
+            QHeaderView::section:hover {
+                background-color: #7fb069;
+                color: #ffffff;
             }
             QListWidget {
                 background-color: #ffffff;
@@ -1725,6 +1748,10 @@ class MainWindow(QMainWindow):
         self.rivers_table = QTableWidget()
         self.rivers_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.rivers_table.itemSelectionChanged.connect(self.river_selection_changed)
+        
+        # Enable sorting
+        self.rivers_table.setSortingEnabled(True)
+        
         table_layout.addWidget(self.rivers_table)
         
         splitter.addWidget(table_widget)
@@ -1778,6 +1805,10 @@ class MainWindow(QMainWindow):
         self.trips_table = QTableWidget()
         self.trips_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.trips_table.itemSelectionChanged.connect(self.trip_selection_changed)
+        
+        # Enable sorting for trip logs table as well
+        self.trips_table.setSortingEnabled(True)
+        
         layout.addWidget(self.trips_table)
     
     def create_stats_tab(self):
@@ -1799,6 +1830,9 @@ class MainWindow(QMainWindow):
         """Refresh the rivers table"""
         rivers = self.db_manager.get_all_rivers()
         
+        # Temporarily disable sorting to avoid issues during population
+        self.rivers_table.setSortingEnabled(False)
+        
         self.rivers_table.setRowCount(len(rivers))
         self.rivers_table.setColumnCount(7)
         
@@ -1806,23 +1840,62 @@ class MainWindow(QMainWindow):
         self.rivers_table.setHorizontalHeaderLabels(headers)
         
         for row, river in enumerate(rivers):
+            # ID column (hidden)
             self.rivers_table.setItem(row, 0, QTableWidgetItem(str(river['id'])))
+            
+            # Name column
             self.rivers_table.setItem(row, 1, QTableWidgetItem(river['name']))
+            
+            # Location column
             self.rivers_table.setItem(row, 2, QTableWidgetItem(river['location']))
             
-            self.rivers_table.setItem(row, 3, QTableWidgetItem(river['difficulty_class'] or ''))
+            # Difficulty column with proper sorting
+            difficulty = river['difficulty_class'] or ''
+            # Create a sort key based on class number for proper difficulty sorting
+            difficulty_sort_key = 0
+            if difficulty == 'Class I':
+                difficulty_sort_key = 1
+            elif difficulty == 'Class II':
+                difficulty_sort_key = 2
+            elif difficulty == 'Class III':
+                difficulty_sort_key = 3
+            elif difficulty == 'Class IV':
+                difficulty_sort_key = 4
+            elif difficulty == 'Class V':
+                difficulty_sort_key = 5
+            elif difficulty == 'Class VI':
+                difficulty_sort_key = 6
             
-            length_text = f"{river['length_miles']:.1f}" if river['length_miles'] else ''
-            self.rivers_table.setItem(row, 4, QTableWidgetItem(length_text))
+            difficulty_item = SortableTableWidgetItem(difficulty, difficulty_sort_key)
+            self.rivers_table.setItem(row, 3, difficulty_item)
             
-            rating_text = str(river['personal_rating']) if river['personal_rating'] else ''
-            self.rivers_table.setItem(row, 5, QTableWidgetItem(rating_text))
+            # Length column with numeric sorting
+            length = river['length_miles']
+            if length is not None:
+                length_text = f"{length:.1f}"
+                length_item = SortableTableWidgetItem(length_text, length)
+            else:
+                length_item = SortableTableWidgetItem('', -1)  # Empty values sort first
+            self.rivers_table.setItem(row, 4, length_item)
             
+            # Rating column with numeric sorting
+            rating = river['personal_rating']
+            if rating is not None:
+                rating_text = str(rating)
+                rating_item = SortableTableWidgetItem(rating_text, rating)
+            else:
+                rating_item = SortableTableWidgetItem('', -1)  # Empty values sort first
+            self.rivers_table.setItem(row, 5, rating_item)
+            
+            # Last Updated column
             self.rivers_table.setItem(row, 6, QTableWidgetItem(river['last_updated'][:10]))
         
         # Hide ID column and resize
         self.rivers_table.hideColumn(0)
         self.rivers_table.resizeColumnsToContents()
+        
+        # Re-enable sorting
+        self.rivers_table.setSortingEnabled(True)
         
         # Store original data for filtering
         self.original_rivers_data = rivers
@@ -1846,23 +1919,65 @@ class MainWindow(QMainWindow):
             
             filtered_rivers.append(river)
         
+        # Temporarily disable sorting to avoid issues during population
+        self.rivers_table.setSortingEnabled(False)
+        
         # Update table with filtered results
         self.rivers_table.setRowCount(len(filtered_rivers))
         
         for row, river in enumerate(filtered_rivers):
+            # ID column (hidden)
             self.rivers_table.setItem(row, 0, QTableWidgetItem(str(river['id'])))
+            
+            # Name column
             self.rivers_table.setItem(row, 1, QTableWidgetItem(river['name']))
+            
+            # Location column
             self.rivers_table.setItem(row, 2, QTableWidgetItem(river['location']))
             
-            self.rivers_table.setItem(row, 3, QTableWidgetItem(river['difficulty_class'] or ''))
+            # Difficulty column with proper sorting
+            difficulty = river['difficulty_class'] or ''
+            # Create a sort key based on class number for proper difficulty sorting
+            difficulty_sort_key = 0
+            if difficulty == 'Class I':
+                difficulty_sort_key = 1
+            elif difficulty == 'Class II':
+                difficulty_sort_key = 2
+            elif difficulty == 'Class III':
+                difficulty_sort_key = 3
+            elif difficulty == 'Class IV':
+                difficulty_sort_key = 4
+            elif difficulty == 'Class V':
+                difficulty_sort_key = 5
+            elif difficulty == 'Class VI':
+                difficulty_sort_key = 6
             
-            length_text = f"{river['length_miles']:.1f}" if river['length_miles'] else ''
-            self.rivers_table.setItem(row, 4, QTableWidgetItem(length_text))
+            difficulty_item = SortableTableWidgetItem(difficulty, difficulty_sort_key)
+            self.rivers_table.setItem(row, 3, difficulty_item)
             
-            rating_text = str(river['personal_rating']) if river['personal_rating'] else ''
-            self.rivers_table.setItem(row, 5, QTableWidgetItem(rating_text))
+            # Length column with numeric sorting
+            length = river['length_miles']
+            if length is not None:
+                length_text = f"{length:.1f}"
+                length_item = SortableTableWidgetItem(length_text, length)
+            else:
+                length_item = SortableTableWidgetItem('', -1)  # Empty values sort first
+            self.rivers_table.setItem(row, 4, length_item)
             
+            # Rating column with numeric sorting
+            rating = river['personal_rating']
+            if rating is not None:
+                rating_text = str(rating)
+                rating_item = SortableTableWidgetItem(rating_text, rating)
+            else:
+                rating_item = SortableTableWidgetItem('', -1)  # Empty values sort first
+            self.rivers_table.setItem(row, 5, rating_item)
+            
+            # Last Updated column
             self.rivers_table.setItem(row, 6, QTableWidgetItem(river['last_updated'][:10]))
+        
+        # Re-enable sorting
+        self.rivers_table.setSortingEnabled(True)
     
     def river_selection_changed(self):
         """Handle river selection change"""
@@ -2177,6 +2292,9 @@ class MainWindow(QMainWindow):
         """Refresh the trip logs table"""
         trips = self.db_manager.get_trip_logs()
         
+        # Temporarily disable sorting to avoid issues during population
+        self.trips_table.setSortingEnabled(False)
+        
         self.trips_table.setRowCount(len(trips))
         self.trips_table.setColumnCount(8)
         
@@ -2184,23 +2302,48 @@ class MainWindow(QMainWindow):
         self.trips_table.setHorizontalHeaderLabels(headers)
         
         for row, trip in enumerate(trips):
+            # ID column (hidden)
             self.trips_table.setItem(row, 0, QTableWidgetItem(str(trip['id'])))
+            
+            # River name column
             self.trips_table.setItem(row, 1, QTableWidgetItem(trip['river_name']))
+            
+            # Date column
             self.trips_table.setItem(row, 2, QTableWidgetItem(trip['trip_date']))
+            
+            # Companions column
             self.trips_table.setItem(row, 3, QTableWidgetItem(trip['companions'] or ''))
             
-            duration_text = f"{trip['duration_hours']:.1f}h" if trip['duration_hours'] else ''
-            self.trips_table.setItem(row, 4, QTableWidgetItem(duration_text))
+            # Duration column with numeric sorting
+            duration = trip['duration_hours']
+            if duration is not None:
+                duration_text = f"{duration:.1f}h"
+                duration_item = SortableTableWidgetItem(duration_text, duration)
+            else:
+                duration_item = SortableTableWidgetItem('', -1)  # Empty values sort first
+            self.trips_table.setItem(row, 4, duration_item)
             
-            rating_text = str(trip['trip_rating']) if trip['trip_rating'] else ''
-            self.trips_table.setItem(row, 5, QTableWidgetItem(rating_text))
+            # Rating column with numeric sorting
+            rating = trip['trip_rating']
+            if rating is not None:
+                rating_text = str(rating)
+                rating_item = SortableTableWidgetItem(rating_text, rating)
+            else:
+                rating_item = SortableTableWidgetItem('', -1)  # Empty values sort first
+            self.trips_table.setItem(row, 5, rating_item)
             
+            # Water level column
             self.trips_table.setItem(row, 6, QTableWidgetItem(trip['water_level'] or ''))
+            
+            # Weather column
             self.trips_table.setItem(row, 7, QTableWidgetItem(trip['weather_conditions'] or ''))
         
         # Hide ID column and resize
         self.trips_table.hideColumn(0)
         self.trips_table.resizeColumnsToContents()
+        
+        # Re-enable sorting
+        self.trips_table.setSortingEnabled(True)
         
         # Disable edit and delete buttons by default (no selection)
         if hasattr(self, 'edit_trip_btn'):
@@ -2540,7 +2683,8 @@ class MainWindow(QMainWindow):
             "• Beautiful nature-inspired themes\n"
             "• Dark mode support\n"
             "• Cross-platform data storage\n"
-            "• Water depth and flow rate tracking\n\n"
+            "• Water depth and flow rate tracking\n"
+            "• Sortable column headers\n\n"
             f"Data stored in: {app_dir}"
         )
 
