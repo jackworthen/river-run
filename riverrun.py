@@ -1215,7 +1215,7 @@ class MainWindow(QMainWindow):
     
     def setup_ui(self):
         self.setWindowTitle("River Runner")
-        self.setGeometry(100, 100, 1400, 850)  # Increased size to accommodate sortable headers
+        self.setGeometry(100, 100, 1440, 850)  # Increased size to accommodate sortable headers
         
         # Create central widget and main layout
         central_widget = QWidget()
