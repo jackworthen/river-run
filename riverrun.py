@@ -1215,7 +1215,7 @@ class MainWindow(QMainWindow):
     
     def setup_ui(self):
         self.setWindowTitle("River Runner")
-        self.setGeometry(100, 100, 1275, 800)  # Updated width to 1275
+        self.setGeometry(100, 100, 1400, 850)  # Increased size to accommodate sortable headers
         
         # Create central widget and main layout
         central_widget = QWidget()
@@ -1894,8 +1894,22 @@ class MainWindow(QMainWindow):
         self.rivers_table.hideColumn(0)
         self.rivers_table.resizeColumnsToContents()
         
+        # Add extra space to narrower columns to accommodate sort arrows
+        header = self.rivers_table.horizontalHeader()
+        header.resizeSection(3, max(header.sectionSize(3), 110))  # Difficulty column
+        header.resizeSection(4, max(header.sectionSize(4), 110))  # Length column  
+        header.resizeSection(5, max(header.sectionSize(5), 70))   # Rating column
+        header.resizeSection(6, max(header.sectionSize(6), 120))  # Last Updated column
+        
         # Re-enable sorting
         self.rivers_table.setSortingEnabled(True)
+        
+        # Add extra space to narrower columns to accommodate sort arrows
+        header = self.rivers_table.horizontalHeader()
+        header.resizeSection(3, max(header.sectionSize(3), 110))  # Difficulty column
+        header.resizeSection(4, max(header.sectionSize(4), 110))  # Length column  
+        header.resizeSection(5, max(header.sectionSize(5), 70))   # Rating column
+        header.resizeSection(6, max(header.sectionSize(6), 120))  # Last Updated column
         
         # Store original data for filtering
         self.original_rivers_data = rivers
@@ -2341,6 +2355,12 @@ class MainWindow(QMainWindow):
         # Hide ID column and resize
         self.trips_table.hideColumn(0)
         self.trips_table.resizeColumnsToContents()
+        
+        # Add extra space to narrower columns to accommodate sort arrows
+        header = self.trips_table.horizontalHeader()
+        header.resizeSection(2, max(header.sectionSize(2), 90))   # Date column
+        header.resizeSection(4, max(header.sectionSize(4), 90))   # Duration column
+        header.resizeSection(5, max(header.sectionSize(5), 70))   # Rating column
         
         # Re-enable sorting
         self.trips_table.setSortingEnabled(True)
