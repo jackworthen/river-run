@@ -1215,7 +1215,7 @@ class MainWindow(QMainWindow):
     
     def setup_ui(self):
         self.setWindowTitle("River Runner")
-        self.setGeometry(100, 100, 1440, 850)  # Increased size to accommodate sortable headers
+        self.setGeometry(100, 100, 1240, 700)  # Reduced width from 1440 to 1240 and height from 780 to 700
         
         # Create central widget and main layout
         central_widget = QWidget()
@@ -1772,8 +1772,8 @@ class MainWindow(QMainWindow):
         
         splitter.addWidget(details_widget)
         
-        # Set splitter proportions
-        splitter.setSizes([700, 500])
+        # Set splitter proportions - river table stays same, details panel 40% less (from 500 to 300)
+        splitter.setSizes([700, 300])
     
     def create_trip_logs_tab(self):
         """Create the trip logs tab"""
